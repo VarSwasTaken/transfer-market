@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+// --- ENUMY (Słowniki stałych wartości) ---
+
+enum PreferredFoot {
+  LEFT
+  RIGHT
+  BOTH
+}
+
+enum TransferType {
+  PERMANENT
+  LOAN
+  FREE
+}
+
+enum Position {
+  GOALKEEPER
+  DEFENDER
+  MIDFIELDER
+  FORWARD
+}
+
+// --- MODELE ---
+
+model Nationality {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  flagUrl   String?
+  players   Player[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model League {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  country   String
+  clubs     Club[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Club {
+  id           Int        @id @default(autoincrement())
+  name         String     @unique
+  budget       Decimal    @default(0) @db.Decimal(15, 2)
+  logoUrl      String?
+  league       League     @relation(fields: [leagueId], references: [id])
+  leagueId     Int
+  players      Player[]
+  transfersIn  Transfer[] @relation("ToClub")
+  transfersOut Transfer[] @relation("FromClub")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Agent {
+  id        Int      @id @default(autoincrement())
+  name      String
+  agency    String?
+  players   Player[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Player {
+  id            Int           @id @default(autoincrement())
+  firstName     String
+  lastName      String
+  birthDate     DateTime
+  height        Int?          // w cm
+  weight        Int?          // w kg
+  position      Position      
+  preferredFoot PreferredFoot @default(RIGHT)
+  marketValue   Decimal       @db.Decimal(15, 2)
+  imageUrl      String?
+  
+  // Relacje
+  nationality   Nationality   @relation(fields: [nationalityId], references: [id])
+  nationalityId Int
+  club          Club?         @relation(fields: [clubId], references: [id])
+  clubId        Int?
+  agent         Agent?        @relation(fields: [agentId], references: [id])
+  agentId       Int?
+  
+  contracts     Contract[]
+  transfers     Transfer[]
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Contract {
+  id             Int      @id @default(autoincrement())
+  player         Player   @relation(fields: [playerId], references: [id])
+  playerId       Int
+  startDate      DateTime
+  endDate        DateTime
+  salary         Decimal  @db.Decimal(15, 2)
+  releaseClause  Decimal? @db.Decimal(15, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Transfer {
+  id           Int          @id @default(autoincrement())
+  player       Player       @relation(fields: [playerId], references: [id])
+  playerId     Int
+  fromClub     Club?        @relation("FromClub", fields: [fromClubId], references: [id])
+  fromClubId   Int?
+  toClub       Club         @relation("ToClub", fields: [toClubId], references: [id])
+  toClubId     Int
+  fee          Decimal      @db.Decimal(15, 2)
+  transferType TransferType @default(PERMANENT)
+  date         DateTime     @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
