@@ -6,11 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:sql": "npx prisma db seed",
+    "seed:nosql": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" ./prisma/seed_nosql.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
+    "mongoose": "^9.5.0",
     "next": "16.2.4",
     "pg": "^8.20.0",
     "prisma": "^7.7.0",
