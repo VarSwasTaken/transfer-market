@@ -108,14 +108,12 @@ async function main() {
     })
   }
 
-  const nationalityCodeByName = new Map(fifaNations.map((n) => [n.name, n.code]))
-
   // --- Sekcja Ligi i Kluby ---
   const leagues = [
     {
       name: 'Premier League',
       countryName: 'England',
-      logo: 'https://prowebjedi.com/wp-content/uploads/2023/04/Premier-League-Logo.png',
+      logo: 'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg',
     },
     {
       name: 'La Liga',
@@ -186,7 +184,170 @@ async function main() {
     }
   }
 
-  console.log('✅ Baza danych FIFA jest kompletna!')
+// --- 3. ZAWODNICY I KONTRAKTY ---
+  console.log('⚽ Rozpoczynam rekrutację topowych zawodników...');
+
+  const playersData = [
+    // Real Madryt
+    { firstName: 'Kylian', lastName: 'Mbappé', club: 'Real Madrid', nation: 'France', pos: 'FORWARD', value: 180000000, birth: '1998-12-20' },
+    { firstName: 'Jude', lastName: 'Bellingham', club: 'Real Madrid', nation: 'England', pos: 'MIDFIELDER', value: 180000000, birth: '2003-06-29' },
+    { firstName: 'Vinícius', lastName: 'Júnior', club: 'Real Madrid', nation: 'Brazil', pos: 'FORWARD', value: 180000000, birth: '2000-07-12' },
+    
+    // Manchester City
+    { firstName: 'Erling', lastName: 'Haaland', club: 'Manchester City', nation: 'Norway', pos: 'FORWARD', value: 180000000, birth: '2000-07-21' },
+    { firstName: 'Kevin', lastName: 'De Bruyne', club: 'Manchester City', nation: 'Belgium', pos: 'MIDFIELDER', value: 60000000, birth: '1991-06-28' },
+    { firstName: 'Rodri', lastName: '', club: 'Manchester City', nation: 'Spain', pos: 'MIDFIELDER', value: 130000000, birth: '1996-06-22' },
+
+    // FC Barcelona
+    { firstName: 'Robert', lastName: 'Lewandowski', club: 'FC Barcelona', nation: 'Poland', pos: 'FORWARD', value: 15000000, birth: '1988-08-21' },
+    { firstName: 'Lamine', lastName: 'Yamal', club: 'FC Barcelona', nation: 'Spain', pos: 'FORWARD', value: 120000000, birth: '2007-07-13' },
+    { firstName: 'Pedri', lastName: '', club: 'FC Barcelona', nation: 'Spain', pos: 'MIDFIELDER', value: 80000000, birth: '2002-11-25' },
+
+    // Bayern Monachium
+    { firstName: 'Harry', lastName: 'Kane', club: 'Bayern Munich', nation: 'England', pos: 'FORWARD', value: 100000000, birth: '1993-07-28' },
+    { firstName: 'Jamal', lastName: 'Musiala', club: 'Bayern Munich', nation: 'Germany', pos: 'MIDFIELDER', value: 130000000, birth: '2003-02-26' },
+
+    // Liverpool
+    { firstName: 'Mohamed', lastName: 'Salah', club: 'Liverpool', nation: 'Egypt', pos: 'FORWARD', value: 65000000, birth: '1992-06-15' },
+    { firstName: 'Virgil', lastName: 'van Dijk', club: 'Liverpool', nation: 'Netherlands', pos: 'DEFENDER', value: 30000000, birth: '1991-07-08' },
+
+    // Inter Mediolan
+    { firstName: 'Lautaro', lastName: 'Martínez', club: 'Inter Milan', nation: 'Argentina', pos: 'FORWARD', value: 110000000, birth: '1997-08-22' },
+
+    // Arsenal
+    { firstName: 'Bukayo', lastName: 'Saka', club: 'Arsenal', nation: 'England', pos: 'FORWARD', value: 140000000, birth: '2001-09-05' },
+    { firstName: 'Martin', lastName: 'Ødegaard', club: 'Arsenal', nation: 'Norway', pos: 'MIDFIELDER', value: 110000000, birth: '1998-12-17' },
+
+    // PSG
+    { firstName: 'Ousmane', lastName: 'Dembélé', club: 'Paris Saint-Germain', nation: 'France', pos: 'FORWARD', value: 60000000, birth: '1997-05-15' },
+
+    // Legia Warszawa (akcent polski!)
+    { firstName: 'Josué', lastName: '', club: 'Legia Warszawa', nation: 'Portugal', pos: 'MIDFIELDER', value: 1000000, birth: '1990-08-16' },
+  ];
+
+  // Mapowanie zawodników do agentów
+  const playerToAgent: Record<string, string> = {
+    'Kylian Mbappé': 'Rafaela Pimenta',
+    'Jude Bellingham': 'Jorge Mendes',
+    'Vinícius Júnior': 'Jorge Mendes',
+    'Erling Haaland': 'Rafaela Pimenta',
+    'Kevin De Bruyne': 'Kia Joorabchian',
+    'Rodri': 'Kia Joorabchian',
+    'Robert Lewandowski': 'Pini Zahavi',
+    'Lamine Yamal': 'Kia Joorabchian',
+    'Pedri': 'Rafaela Pimenta',
+    'Harry Kane': 'Rafaela Pimenta',
+    'Jamal Musiala': 'Kia Joorabchian',
+    'Mohamed Salah': 'Jorge Mendes',
+    'Virgil van Dijk': 'Jorge Mendes',
+    'Lautaro Martínez': 'Jorge Mendes',
+    'Bukayo Saka': 'Kia Joorabchian',
+    'Martin Ødegaard': 'Rafaela Pimenta',
+    'Ousmane Dembélé': 'Kia Joorabchian',
+    'Josué': 'Pini Zahavi',
+  };
+
+  for (const p of playersData) {
+    const club = await prisma.club.findUnique({ where: { name: p.club } });
+    const nation = await prisma.nationality.findUnique({ where: { name: p.nation } });
+    const fullName = `${p.firstName} ${p.lastName}`;
+    const agentName = playerToAgent[fullName];
+    const agent = agentName ? await prisma.agent.findFirst({ where: { name: agentName } }) : null;
+
+    if (club && nation) {
+      await prisma.player.create({
+        data: {
+          firstName: p.firstName,
+          lastName: p.lastName,
+          birthDate: new Date(p.birth),
+          position: p.pos as any, // rzutowanie na enum Position
+          marketValue: p.value,
+          nationalityId: nation.id,
+          clubId: club.id,
+          agentId: agent?.id || null,
+          // Od razu tworzymy kontrakt dla zawodnika
+          contracts: {
+            create: {
+              startDate: new Date('2024-07-01'),
+              endDate: new Date('2028-06-30'),
+              salary: Math.floor(Math.random() * 20000000) + 1000000,
+            }
+          }
+        }
+      });
+      const agentInfo = agent ? ` (Agent: ${agentName})` : '';
+      console.log(`✅ Zrekrutowano: ${p.firstName} ${p.lastName} (${p.club})${agentInfo}`);
+    } else {
+      console.log(`⚠️ Pominąłem ${p.firstName} ${p.lastName} - nie znaleziono klubu lub kraju.`);
+    }
+  }
+
+  // --- 4. AGENCI (Słynni agenci piłkarscy) ---
+  console.log('💼 Dodaję agentów...');
+  const agentsData = [
+    { name: 'Jorge Mendes', agency: 'Gestifute' },
+    { name: 'Rafaela Pimenta', agency: 'Pimenta Agency' },
+    { name: 'Pini Zahavi', agency: 'Gol International' },
+    { name: 'Kia Joorabchian', agency: 'Sports Investments' },
+  ];
+
+  for (const a of agentsData) {
+    await prisma.agent.upsert({
+      where: { id: 0 },
+      update: {},
+      create: { name: a.name, agency: a.agency },
+    });
+  }
+
+  // --- 5. TRANSFERY (Historia ostatnich hitów) ---
+  console.log('💸 Rejestruję historię transferów...');
+  
+  // Czyszczenie starych transferów
+  await prisma.transfer.deleteMany();
+  console.log('🗑️ Usunięto stare transfery');
+
+  const transfersToRecord = [
+    { playerName: 'Mbappé', from: 'Paris Saint-Germain', to: 'Real Madrid', fee: 0, type: 'FREE', date: '2024-07-01' },
+    { playerName: 'Haaland', from: 'Borussia Dortmund', to: 'Manchester City', fee: 60000000, type: 'PERMANENT', date: '2022-07-01' },
+    { playerName: 'Bellingham', from: 'Borussia Dortmund', to: 'Real Madrid', fee: 103000000, type: 'PERMANENT', date: '2023-07-01' },
+    { playerName: 'Lewandowski', from: 'Bayern Munich', to: 'FC Barcelona', fee: 45000000, type: 'PERMANENT', date: '2022-07-19' },
+    { playerName: 'Kane', from: 'Tottenham', to: 'Bayern Munich', fee: 95000000, type: 'PERMANENT', date: '2023-08-12' },
+  ];
+
+  for (const t of transfersToRecord) {
+    const player = await prisma.player.findFirst({ 
+      where: { lastName: { contains: t.playerName } } 
+    });
+    const fromClub = await prisma.club.findUnique({ where: { name: t.from } });
+    const toClub = await prisma.club.findUnique({ where: { name: t.to } });
+
+    if (player && toClub) {
+      // Sprawdzić czy transfer już istnieje
+      const existingTransfer = await prisma.transfer.findFirst({
+        where: {
+          playerId: player.id,
+          toClubId: toClub.id,
+          date: new Date(t.date),
+        }
+      });
+
+      if (!existingTransfer) {
+        await prisma.transfer.create({
+          data: {
+            playerId: player.id,
+            fromClubId: fromClub?.id || null,
+            toClubId: toClub.id,
+            fee: t.fee,
+            transferType: t.type as any,
+            date: new Date(t.date),
+          }
+        });
+        console.log(`✅ Transfer: ${t.playerName} -> ${t.to} (${t.fee.toLocaleString()} €)`);
+      } else {
+        console.log(`⏭️ Transfer już istnieje: ${t.playerName} -> ${t.to}`);
+      }
+    }
+  }
 }
 
 main()
