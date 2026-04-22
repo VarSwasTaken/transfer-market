@@ -34,17 +34,20 @@ model Nationality {
   name      String   @unique
   flagUrl   String?
   players   Player[]
+  leagues   League[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model League {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  country   String
-  clubs     Club[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  logoUrl       String?
+  nationality   Nationality @relation(fields: [nationalityId], references: [id])
+  nationalityId Int
+  clubs         Club[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Club {
