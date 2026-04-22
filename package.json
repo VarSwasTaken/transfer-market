@@ -12,7 +12,9 @@
     "dedupe:sql": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" ./prisma/seeds/dedupe_sql.ts",
     "reset:players:sql": "npx ts-node --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" ./prisma/seeds/reset_players_sql.ts",
     "reseed:players:sql": "npm run reset:players:sql && npm run seed:sql",
-    "reseed:players": "npm run reseed:players:sql && npm run seed:nosql"
+    "reseed:players": "npm run reseed:players:sql && npm run seed:nosql",
+    "test:integration:api": "node ./scripts/integration/api.integration.mjs",
+    "test:integration:api:fresh": "npm run reseed:players && npm run test:integration:api"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
