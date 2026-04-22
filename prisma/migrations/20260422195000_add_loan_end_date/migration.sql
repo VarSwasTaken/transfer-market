@@ -1,0 +1,1 @@
+ALTER TABLE "Transfer" ADD COLUMN "loanEndDate" TIMESTAMP(3);

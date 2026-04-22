@@ -16,6 +16,7 @@ type CreateTransferInput = {
   transferType?: TransferType;
   date?: string;
   fromClubId?: number | null;
+  loanEndDate?: string | null;
   contract?: CreateTransferContractInput | null;
 };
 
@@ -23,6 +24,7 @@ type UpdateTransferInput = {
   fee?: string | number;
   transferType?: TransferType;
   date?: string;
+  loanEndDate?: string | null;
 };
 
 type TransferWriteResult = {
@@ -32,6 +34,7 @@ type TransferWriteResult = {
   toClubId: number;
   fee: string;
   transferType: TransferType;
+  loanEndDate: string | null;
   date: string;
   createdAt: string;
   updatedAt: string;
@@ -40,6 +43,12 @@ type TransferWriteResult = {
 type CreateTransferResult = {
   transfer: TransferWriteResult;
   contractId: number | null;
+};
+
+type CompleteLoanTransferResult = {
+  completedTransfer: TransferWriteResult;
+  playerId: number;
+  newClubId: number;
 };
 
 function toDecimal(value: string | number): Prisma.Decimal {
@@ -61,6 +70,7 @@ function mapTransfer(transfer: {
   toClubId: number;
   fee: Prisma.Decimal;
   transferType: TransferType;
+  loanEndDate?: Date | null;
   date: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -72,6 +82,7 @@ function mapTransfer(transfer: {
     toClubId: transfer.toClubId,
     fee: transfer.fee.toString(),
     transferType: transfer.transferType,
+    loanEndDate: transfer.loanEndDate?.toISOString() ?? null,
     date: transfer.date.toISOString(),
     createdAt: transfer.createdAt.toISOString(),
     updatedAt: transfer.updatedAt.toISOString(),
@@ -82,6 +93,25 @@ export async function createTransfer(input: CreateTransferInput): Promise<Create
   const fee = toDecimal(input.fee);
   if (fee.lt(0)) {
     throw new Error("fee must be non-negative.");
+  }
+
+  const transferType = input.transferType ?? TransferType.PERMANENT;
+  const loanEndDate = input.loanEndDate !== undefined && input.loanEndDate !== null ? parseDate(input.loanEndDate) : null;
+
+  if (transferType === TransferType.FREE && fee.comparedTo(0) !== 0) {
+    throw new Error("FREE transfers must have a fee of 0.");
+  }
+
+  if (transferType === TransferType.FREE && !input.contract) {
+    throw new Error("FREE transfers require a contract.");
+  }
+
+  if (transferType === TransferType.LOAN && !loanEndDate) {
+    throw new Error("LOAN transfers require loanEndDate.");
+  }
+
+  if (transferType !== TransferType.LOAN && loanEndDate) {
+    throw new Error("Only LOAN transfers can include loanEndDate.");
   }
 
   const transferDate = input.date ? parseDate(input.date) : new Date();
@@ -128,12 +158,13 @@ export async function createTransfer(input: CreateTransferInput): Promise<Create
         fromClubId,
         toClubId: input.toClubId,
         fee,
-        transferType: input.transferType ?? TransferType.PERMANENT,
+        transferType,
+        loanEndDate,
         date: transferDate,
       },
     });
 
-    if (fee.gt(0)) {
+    if (transferType !== TransferType.FREE && fee.gt(0)) {
       await tx.club.update({
         where: { id: input.toClubId },
         data: {
@@ -170,6 +201,10 @@ export async function createTransfer(input: CreateTransferInput): Promise<Create
 
       if (contractEndDate <= contractStartDate) {
         throw new Error("contract.endDate must be later than contract.startDate.");
+      }
+
+      if (loanEndDate && contractEndDate > loanEndDate) {
+        throw new Error("contract.endDate cannot be later than loanEndDate for LOAN transfers.");
       }
 
       const contractSalary = toDecimal(input.contract.salary);
@@ -217,21 +252,55 @@ export async function updateTransfer(
   id: number,
   input: UpdateTransferInput,
 ): Promise<TransferWriteResult | null> {
-  const existing = await prisma.transfer.findUnique({ where: { id }, select: { id: true } });
+  const existing = await prisma.transfer.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      fee: true,
+      transferType: true,
+      loanEndDate: true,
+    },
+  });
   if (!existing) {
     return null;
   }
 
-  const fee = input.fee !== undefined ? toDecimal(input.fee) : undefined;
-  if (fee && fee.lt(0)) {
+  const fee = input.fee !== undefined ? toDecimal(input.fee) : existing.fee;
+  if (fee.lt(0)) {
     throw new Error("fee must be non-negative.");
+  }
+
+  const transferType = input.transferType ?? existing.transferType;
+  const loanEndDate =
+    input.loanEndDate === undefined
+      ? existing.loanEndDate
+      : input.loanEndDate === null
+        ? null
+        : parseDate(input.loanEndDate);
+
+  if (transferType === TransferType.LOAN && !loanEndDate) {
+    throw new Error("LOAN transfers require loanEndDate.");
+  }
+
+  if (transferType !== TransferType.LOAN && loanEndDate) {
+    throw new Error("Only LOAN transfers can include loanEndDate.");
+  }
+
+  if (transferType === TransferType.FREE && fee.comparedTo(0) !== 0) {
+    throw new Error("FREE transfers must have a fee of 0.");
   }
 
   const updated = await prisma.transfer.update({
     where: { id },
     data: {
-      fee,
+      fee: input.fee !== undefined ? fee : undefined,
       transferType: input.transferType,
+      loanEndDate:
+        input.loanEndDate === undefined
+          ? undefined
+          : input.loanEndDate === null
+            ? null
+            : parseDate(input.loanEndDate),
       date: input.date ? parseDate(input.date) : undefined,
     },
   });
@@ -247,4 +316,90 @@ export async function deleteTransfer(id: number): Promise<boolean | null> {
 
   await prisma.transfer.delete({ where: { id } });
   return true;
+}
+
+export async function completeLoanTransfer(
+  transferId: number,
+  input?: { returnDate?: string },
+): Promise<CompleteLoanTransferResult | null> {
+  const returnDate = input?.returnDate ? parseDate(input.returnDate) : new Date();
+
+  const result = await prisma.$transaction(async (tx) => {
+    const loanTransfer = await tx.transfer.findUnique({
+      where: { id: transferId },
+      select: {
+        id: true,
+        playerId: true,
+        fromClubId: true,
+        toClubId: true,
+        transferType: true,
+        date: true,
+        loanEndDate: true,
+      },
+    });
+
+    if (!loanTransfer) {
+      return null;
+    }
+
+    if (loanTransfer.transferType !== TransferType.LOAN) {
+      throw new Error("Only LOAN transfers can be completed with this endpoint.");
+    }
+
+    if (loanTransfer.fromClubId === null) {
+      throw new Error("Loan transfer has no origin club to return to.");
+    }
+
+    if (returnDate < loanTransfer.date) {
+      throw new Error("returnDate cannot be earlier than transfer date.");
+    }
+
+    const player = await tx.player.findUnique({
+      where: { id: loanTransfer.playerId },
+      select: { id: true, clubId: true },
+    });
+
+    if (!player) {
+      throw new Error("Player not found.");
+    }
+
+    if (player.clubId !== loanTransfer.toClubId) {
+      throw new Error("Loan cannot be completed because player is not in the loan destination club.");
+    }
+
+    const completedTransfer = await tx.transfer.create({
+      data: {
+        playerId: loanTransfer.playerId,
+        fromClubId: loanTransfer.toClubId,
+        toClubId: loanTransfer.fromClubId,
+        fee: toDecimal(0),
+        transferType: TransferType.LOAN,
+        loanEndDate: returnDate,
+        date: returnDate,
+      },
+    });
+
+    await tx.player.update({
+      where: { id: loanTransfer.playerId },
+      data: {
+        clubId: loanTransfer.fromClubId,
+      },
+    });
+
+    return {
+      completedTransfer,
+      playerId: loanTransfer.playerId,
+      newClubId: loanTransfer.fromClubId,
+    };
+  });
+
+  if (!result) {
+    return null;
+  }
+
+  return {
+    completedTransfer: mapTransfer(result.completedTransfer),
+    playerId: result.playerId,
+    newClubId: result.newClubId,
+  };
 }

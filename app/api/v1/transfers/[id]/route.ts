@@ -50,6 +50,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       payload.transferType = body.transferType;
     }
     if (typeof body.date === "string") payload.date = body.date;
+    if (typeof body.loanEndDate === "string" || body.loanEndDate === null) {
+      payload.loanEndDate = body.loanEndDate;
+    }
 
     const updated = await updateTransfer(transferId, payload);
 

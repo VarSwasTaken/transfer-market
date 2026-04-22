@@ -84,6 +84,18 @@ export async function POST(request: Request) {
       return badRequest("Invalid contract object.");
     }
 
+    if (body.transferType === "FREE" && (body.contract === undefined || body.contract === null)) {
+      return badRequest("FREE transfers require a contract.");
+    }
+
+    if (body.transferType === "LOAN" && typeof body.loanEndDate !== "string") {
+      return badRequest("LOAN transfers require loanEndDate.");
+    }
+
+    if (body.transferType !== "LOAN" && body.loanEndDate !== undefined && body.loanEndDate !== null) {
+      return badRequest("Only LOAN transfers can include loanEndDate.");
+    }
+
     const contract = body.contract as Record<string, unknown> | null | undefined;
 
     if (
@@ -110,6 +122,7 @@ export async function POST(request: Request) {
         typeof body.fromClubId === "number" || body.fromClubId === null
           ? body.fromClubId
           : undefined,
+      loanEndDate: typeof body.loanEndDate === "string" ? body.loanEndDate : undefined,
       contract: contract
         ? {
             startDate: contract.startDate as string,

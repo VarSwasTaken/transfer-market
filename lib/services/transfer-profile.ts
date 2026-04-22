@@ -10,6 +10,7 @@ type TransferProfileData = {
   toClubName: string;
   fee: string;
   transferType: string;
+  loanEndDate: string | null;
   date: string;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +45,7 @@ export async function getTransferProfile(id: number): Promise<TransferProfileRes
       toClubName: transfer.toClub.name,
       fee: transfer.fee.toString(),
       transferType: transfer.transferType,
+      loanEndDate: transfer.loanEndDate?.toISOString() ?? null,
       date: transfer.date.toISOString(),
       createdAt: transfer.createdAt.toISOString(),
       updatedAt: transfer.updatedAt.toISOString(),

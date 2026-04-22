@@ -21,6 +21,7 @@ type TransfersListItem = {
   toClubName: string;
   fee: string;
   transferType: TransferType;
+  loanEndDate: string | null;
   date: string;
   createdAt: string;
   updatedAt: string;
@@ -74,6 +75,7 @@ export async function getTransfersList(input: TransfersListInput): Promise<Trans
       toClubName: item.toClub.name,
       fee: item.fee.toString(),
       transferType: item.transferType,
+      loanEndDate: item.loanEndDate?.toISOString() ?? null,
       date: item.date.toISOString(),
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
