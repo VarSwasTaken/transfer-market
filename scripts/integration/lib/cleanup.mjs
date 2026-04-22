@@ -8,11 +8,15 @@ export function createCreatedTracker() {
     players: [],
     contracts: [],
     transfers: [],
+    injuries: [],
+    scoutReports: [],
   };
 }
 
 export async function cleanupCreated(baseUrl, created) {
   const ordered = [
+    ["injuries", "injuries"],
+    ["scoutReports", "scout-reports"],
     ["contracts", "contracts"],
     ["transfers", "transfers"],
     ["players", "players"],

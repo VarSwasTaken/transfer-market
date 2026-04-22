@@ -102,6 +102,64 @@ export async function runCrudLifecycleSuite(context) {
   const getPlayer = await callApi(baseUrl, `/api/v1/players/${playerId}`);
   assert.equal(getPlayer.response.status, 200, "GET /players/:id should return 200");
 
+  const createInjury = await callApi(baseUrl, "/api/v1/injuries", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      playerId,
+      type: "Hamstring",
+      severity: "Średnia",
+      startDate: "2026-08-01",
+      status: "W trakcie leczenia",
+      description: "Test injury",
+    }),
+  });
+  assert.equal(createInjury.response.status, 201, "POST /injuries should return 201");
+  const injuryId = createInjury.json.data?.id;
+  assert.equal(typeof injuryId, "string", "Created injury id should be a string");
+  created.injuries.push(injuryId);
+
+  const getInjury = await callApi(baseUrl, `/api/v1/injuries/${injuryId}`);
+  assert.equal(getInjury.response.status, 200, "GET /injuries/:id should return 200");
+
+  const patchInjury = await callApi(baseUrl, `/api/v1/injuries/${injuryId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "Rehabilitacja" }),
+  });
+  assert.equal(patchInjury.response.status, 200, "PATCH /injuries/:id should return 200");
+
+  const createScoutReport = await callApi(baseUrl, "/api/v1/scout-reports", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      playerId,
+      scoutName: "Integration Scout",
+      rating: 78,
+      potential: "High",
+      pros: ["pace", "vision"],
+      cons: ["heading"],
+      attributes: {
+        pace: 80,
+        passing: 82,
+      },
+    }),
+  });
+  assert.equal(createScoutReport.response.status, 201, "POST /scout-reports should return 201");
+  const scoutReportId = createScoutReport.json.data?.id;
+  assert.equal(typeof scoutReportId, "string", "Created scout report id should be a string");
+  created.scoutReports.push(scoutReportId);
+
+  const getScoutReport = await callApi(baseUrl, `/api/v1/scout-reports/${scoutReportId}`);
+  assert.equal(getScoutReport.response.status, 200, "GET /scout-reports/:id should return 200");
+
+  const patchScoutReport = await callApi(baseUrl, `/api/v1/scout-reports/${scoutReportId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes: "Updated after second watch", rating: 81 }),
+  });
+  assert.equal(patchScoutReport.response.status, 200, "PATCH /scout-reports/:id should return 200");
+
   const createInvalidContract = await callApi(baseUrl, "/api/v1/contracts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -214,6 +272,18 @@ export async function runCrudLifecycleSuite(context) {
   });
   assert.equal(deleteContract.response.status, 200, "DELETE /contracts/:id should return 200");
   created.contracts = created.contracts.filter((id) => id !== contractId);
+
+  const deleteInjury = await callApi(baseUrl, `/api/v1/injuries/${injuryId}`, {
+    method: "DELETE",
+  });
+  assert.equal(deleteInjury.response.status, 200, "DELETE /injuries/:id should return 200");
+  created.injuries = created.injuries.filter((id) => id !== injuryId);
+
+  const deleteScoutReport = await callApi(baseUrl, `/api/v1/scout-reports/${scoutReportId}`, {
+    method: "DELETE",
+  });
+  assert.equal(deleteScoutReport.response.status, 200, "DELETE /scout-reports/:id should return 200");
+  created.scoutReports = created.scoutReports.filter((id) => id !== scoutReportId);
 
   const deletePlayerWithTransfers = await callApi(baseUrl, `/api/v1/players/${playerId}`, {
     method: "DELETE",
