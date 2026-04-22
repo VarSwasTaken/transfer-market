@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import mongoose from 'mongoose';
-import ScoutingReport from '../models/ScoutingReport';
-import Injury from '../models/Injury';
+import ScoutingReport from '../../models/ScoutingReport';
+import Injury from '../../models/Injury';
 import "dotenv/config";
 
 const connectionString = `${process.env.DATABASE_URL}`;

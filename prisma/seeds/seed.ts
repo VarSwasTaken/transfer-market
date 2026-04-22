@@ -1,4 +1,4 @@
-import { PrismaClient, Position, PreferredFoot, TransferType } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
@@ -184,7 +184,34 @@ async function main() {
     }
   }
 
-// --- 3. ZAWODNICY I KONTRAKTY ---
+  // --- 3. AGENCI (Słynni agenci piłkarscy) ---
+  console.log('💼 Dodaję agentów...');
+  const agentsData = [
+    { name: 'Jorge Mendes', agency: 'Gestifute' },
+    { name: 'Rafaela Pimenta', agency: 'Pimenta Agency' },
+    { name: 'Pini Zahavi', agency: 'Gol International' },
+    { name: 'Kia Joorabchian', agency: 'Sports Investments' },
+  ];
+
+  for (const a of agentsData) {
+    const existingAgent = await prisma.agent.findFirst({
+      where: { name: a.name },
+      orderBy: { id: 'asc' },
+    });
+
+    if (existingAgent) {
+      await prisma.agent.update({
+        where: { id: existingAgent.id },
+        data: { agency: a.agency },
+      });
+    } else {
+      await prisma.agent.create({
+        data: { name: a.name, agency: a.agency },
+      });
+    }
+  }
+
+  // --- 4. ZAWODNICY I KONTRAKTY ---
   console.log('⚽ Rozpoczynam rekrutację topowych zawodników...');
 
   const playersData = [
@@ -250,61 +277,76 @@ async function main() {
   for (const p of playersData) {
     const club = await prisma.club.findUnique({ where: { name: p.club } });
     const nation = await prisma.nationality.findUnique({ where: { name: p.nation } });
-    const fullName = `${p.firstName} ${p.lastName}`;
+    const fullName = `${p.firstName} ${p.lastName}`.trim();
     const agentName = playerToAgent[fullName];
     const agent = agentName ? await prisma.agent.findFirst({ where: { name: agentName } }) : null;
 
     if (club && nation) {
-      await prisma.player.create({
-        data: {
+      const birthDate = new Date(p.birth);
+      const existingPlayer = await prisma.player.findFirst({
+        where: {
           firstName: p.firstName,
           lastName: p.lastName,
-          birthDate: new Date(p.birth),
-          position: p.pos as any, // rzutowanie na enum Position
-          marketValue: p.value,
-          nationalityId: nation.id,
-          clubId: club.id,
-          agentId: agent?.id || null,
-          // Od razu tworzymy kontrakt dla zawodnika
-          contracts: {
-            create: {
-              startDate: new Date('2024-07-01'),
-              endDate: new Date('2028-06-30'),
-              salary: Math.floor(Math.random() * 20000000) + 1000000,
-            }
-          }
-        }
+          birthDate,
+        },
+        orderBy: { id: 'asc' },
       });
+
+      const player = existingPlayer
+        ? await prisma.player.update({
+            where: { id: existingPlayer.id },
+            data: {
+              position: p.pos as any,
+              marketValue: p.value,
+              nationalityId: nation.id,
+              clubId: club.id,
+              agentId: agent?.id || null,
+            },
+          })
+        : await prisma.player.create({
+            data: {
+              firstName: p.firstName,
+              lastName: p.lastName,
+              birthDate,
+              position: p.pos as any,
+              marketValue: p.value,
+              nationalityId: nation.id,
+              clubId: club.id,
+              agentId: agent?.id || null,
+            },
+          });
+
+      const contractStartDate = new Date('2024-07-01');
+      const contractEndDate = new Date('2028-06-30');
+      const existingContract = await prisma.contract.findFirst({
+        where: {
+          playerId: player.id,
+          startDate: contractStartDate,
+          endDate: contractEndDate,
+        },
+      });
+
+      if (!existingContract) {
+        await prisma.contract.create({
+          data: {
+            playerId: player.id,
+            startDate: contractStartDate,
+            endDate: contractEndDate,
+            salary: Math.floor(Math.random() * 20000000) + 1000000,
+          },
+        });
+      }
+
       const agentInfo = agent ? ` (Agent: ${agentName})` : '';
-      console.log(`✅ Zrekrutowano: ${p.firstName} ${p.lastName} (${p.club})${agentInfo}`);
+      const operation = existingPlayer ? '🔁 Zaktualizowano' : '✅ Zrekrutowano';
+      console.log(`${operation}: ${p.firstName} ${p.lastName} (${p.club})${agentInfo}`);
     } else {
       console.log(`⚠️ Pominąłem ${p.firstName} ${p.lastName} - nie znaleziono klubu lub kraju.`);
     }
   }
 
-  // --- 4. AGENCI (Słynni agenci piłkarscy) ---
-  console.log('💼 Dodaję agentów...');
-  const agentsData = [
-    { name: 'Jorge Mendes', agency: 'Gestifute' },
-    { name: 'Rafaela Pimenta', agency: 'Pimenta Agency' },
-    { name: 'Pini Zahavi', agency: 'Gol International' },
-    { name: 'Kia Joorabchian', agency: 'Sports Investments' },
-  ];
-
-  for (const a of agentsData) {
-    await prisma.agent.upsert({
-      where: { id: 0 },
-      update: {},
-      create: { name: a.name, agency: a.agency },
-    });
-  }
-
   // --- 5. TRANSFERY (Historia ostatnich hitów) ---
   console.log('💸 Rejestruję historię transferów...');
-  
-  // Czyszczenie starych transferów
-  await prisma.transfer.deleteMany();
-  console.log('🗑️ Usunięto stare transfery');
 
   const transfersToRecord = [
     { playerName: 'Mbappé', from: 'Paris Saint-Germain', to: 'Real Madrid', fee: 0, type: 'FREE', date: '2024-07-01' },
@@ -316,7 +358,13 @@ async function main() {
 
   for (const t of transfersToRecord) {
     const player = await prisma.player.findFirst({ 
-      where: { lastName: { contains: t.playerName } } 
+      where: {
+        OR: [
+          { lastName: { contains: t.playerName } },
+          { firstName: { contains: t.playerName } },
+        ],
+      },
+      orderBy: { id: 'asc' },
     });
     const fromClub = await prisma.club.findUnique({ where: { name: t.from } });
     const toClub = await prisma.club.findUnique({ where: { name: t.to } });
@@ -346,6 +394,8 @@ async function main() {
       } else {
         console.log(`⏭️ Transfer już istnieje: ${t.playerName} -> ${t.to}`);
       }
+    } else {
+      console.log(`⚠️ Pominąłem transfer ${t.playerName} -> ${t.to} (brak zawodnika lub klubu docelowego)`);
     }
   }
 }
