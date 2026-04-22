@@ -1,4 +1,5 @@
 import { getAgentsList } from "@/lib/services/agents-list";
+import { createAgent } from "@/lib/services/agents-write";
 
 export const runtime = "nodejs";
 
@@ -45,4 +46,27 @@ export async function GET(request: Request) {
       totalPages,
     },
   });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    if (typeof body.name !== "string") {
+      return Response.json(
+        { ok: false, error: "Invalid payload for agent creation." },
+        { status: 400 },
+      );
+    }
+
+    const created = await createAgent({
+      name: body.name.trim(),
+      agency: typeof body.agency === "string" ? body.agency : null,
+    });
+
+    return Response.json({ ok: true, data: created }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create agent.";
+    return Response.json({ ok: false, error: message }, { status: 400 });
+  }
 }

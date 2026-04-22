@@ -1,4 +1,5 @@
 import { getClubsList } from "@/lib/services/clubs-list";
+import { createClub } from "@/lib/services/clubs-write";
 
 export const runtime = "nodejs";
 
@@ -48,4 +49,33 @@ export async function GET(request: Request) {
     data: result.data,
     meta: result.meta,
   });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    if (
+      typeof body.name !== "string" ||
+      (typeof body.budget !== "string" && typeof body.budget !== "number") ||
+      typeof body.leagueId !== "number"
+    ) {
+      return Response.json(
+        { ok: false, error: "Invalid payload for club creation." },
+        { status: 400 },
+      );
+    }
+
+    const created = await createClub({
+      name: body.name.trim(),
+      budget: body.budget,
+      leagueId: body.leagueId,
+      logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : null,
+    });
+
+    return Response.json({ ok: true, data: created }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create club.";
+    return Response.json({ ok: false, error: message }, { status: 400 });
+  }
 }
