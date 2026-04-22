@@ -1,5 +1,5 @@
 import { getLeagueProfile } from "@/lib/services/league-profile";
-import { updateLeague } from "@/lib/services/leagues-write";
+import { deleteLeague, updateLeague } from "@/lib/services/leagues-write";
 
 export const runtime = "nodejs";
 
@@ -81,5 +81,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update league.";
     return Response.json({ ok: false, error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const leagueId = Number(id);
+
+  if (!Number.isInteger(leagueId) || leagueId <= 0) {
+    return Response.json({ ok: false, error: "Invalid league id." }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deleteLeague(leagueId);
+
+    if (!deleted) {
+      return Response.json({ ok: false, error: "League not found." }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete league.";
+    return Response.json({ ok: false, error: message }, { status: 409 });
   }
 }

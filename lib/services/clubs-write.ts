@@ -76,3 +76,21 @@ export async function updateClub(id: number, input: UpdateClubInput): Promise<Cl
 
   return mapClub(updated);
 }
+
+export async function deleteClub(id: number): Promise<boolean | null> {
+  const existing = await prisma.club.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return null;
+  }
+
+  const linkedPlayers = await prisma.player.count({ where: { clubId: id } });
+  const linkedTransfersIn = await prisma.transfer.count({ where: { toClubId: id } });
+  const linkedTransfersOut = await prisma.transfer.count({ where: { fromClubId: id } });
+
+  if (linkedPlayers > 0 || linkedTransfersIn > 0 || linkedTransfersOut > 0) {
+    throw new Error("Cannot delete club while players or transfers are linked to it.");
+  }
+
+  await prisma.club.delete({ where: { id } });
+  return true;
+}

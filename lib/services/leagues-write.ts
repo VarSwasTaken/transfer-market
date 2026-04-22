@@ -67,3 +67,18 @@ export async function updateLeague(
 
   return mapLeague(updated);
 }
+
+export async function deleteLeague(id: number): Promise<boolean | null> {
+  const existing = await prisma.league.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return null;
+  }
+
+  const linkedClubs = await prisma.club.count({ where: { leagueId: id } });
+  if (linkedClubs > 0) {
+    throw new Error("Cannot delete league while clubs are assigned to it.");
+  }
+
+  await prisma.league.delete({ where: { id } });
+  return true;
+}

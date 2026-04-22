@@ -1,7 +1,7 @@
 import { TransferType } from "@prisma/client";
 
 import { getTransferProfile } from "@/lib/services/transfer-profile";
-import { updateTransfer } from "@/lib/services/transfers-write";
+import { deleteTransfer, updateTransfer } from "@/lib/services/transfers-write";
 
 export const runtime = "nodejs";
 
@@ -60,5 +60,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update transfer.";
     return Response.json({ ok: false, error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const transferId = Number(id);
+
+  if (!Number.isInteger(transferId) || transferId <= 0) {
+    return Response.json({ ok: false, error: "Invalid transfer id." }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deleteTransfer(transferId);
+
+    if (!deleted) {
+      return Response.json({ ok: false, error: "Transfer not found." }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete transfer.";
+    return Response.json({ ok: false, error: message }, { status: 409 });
   }
 }

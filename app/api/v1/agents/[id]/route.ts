@@ -1,5 +1,5 @@
 import { getAgentProfile } from "@/lib/services/agent-profile";
-import { updateAgent } from "@/lib/services/agents-write";
+import { deleteAgent, updateAgent } from "@/lib/services/agents-write";
 
 export const runtime = "nodejs";
 
@@ -80,5 +80,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update agent.";
     return Response.json({ ok: false, error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const agentId = Number(id);
+
+  if (!Number.isInteger(agentId) || agentId <= 0) {
+    return Response.json({ ok: false, error: "Invalid agent id." }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deleteAgent(agentId);
+
+    if (!deleted) {
+      return Response.json({ ok: false, error: "Agent not found." }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete agent.";
+    return Response.json({ ok: false, error: message }, { status: 409 });
   }
 }

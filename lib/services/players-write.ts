@@ -125,3 +125,20 @@ export async function updatePlayer(id: number, input: UpdatePlayerInput): Promis
 
   return mapPlayer(updated);
 }
+
+export async function deletePlayer(id: number): Promise<boolean | null> {
+  const existing = await prisma.player.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return null;
+  }
+
+  const linkedContracts = await prisma.contract.count({ where: { playerId: id } });
+  const linkedTransfers = await prisma.transfer.count({ where: { playerId: id } });
+
+  if (linkedContracts > 0 || linkedTransfers > 0) {
+    throw new Error("Cannot delete player while contracts or transfers exist.");
+  }
+
+  await prisma.player.delete({ where: { id } });
+  return true;
+}

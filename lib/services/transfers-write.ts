@@ -238,3 +238,13 @@ export async function updateTransfer(
 
   return mapTransfer(updated);
 }
+
+export async function deleteTransfer(id: number): Promise<boolean | null> {
+  const existing = await prisma.transfer.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return null;
+  }
+
+  await prisma.transfer.delete({ where: { id } });
+  return true;
+}

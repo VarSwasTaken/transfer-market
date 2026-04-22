@@ -1,5 +1,5 @@
 import { getContractProfile } from "@/lib/services/contract-profile";
-import { updateContract } from "@/lib/services/contracts-write";
+import { deleteContract, updateContract } from "@/lib/services/contracts-write";
 
 export const runtime = "nodejs";
 
@@ -62,5 +62,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update contract.";
     return Response.json({ ok: false, error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const contractId = Number(id);
+
+  if (!Number.isInteger(contractId) || contractId <= 0) {
+    return Response.json({ ok: false, error: "Invalid contract id." }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deleteContract(contractId);
+
+    if (!deleted) {
+      return Response.json({ ok: false, error: "Contract not found." }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete contract.";
+    return Response.json({ ok: false, error: message }, { status: 409 });
   }
 }

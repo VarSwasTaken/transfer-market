@@ -155,3 +155,13 @@ export async function updateContract(
 
   return mapContract(updated);
 }
+
+export async function deleteContract(id: number): Promise<boolean | null> {
+  const existing = await prisma.contract.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) {
+    return null;
+  }
+
+  await prisma.contract.delete({ where: { id } });
+  return true;
+}

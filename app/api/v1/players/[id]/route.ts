@@ -1,5 +1,5 @@
 import { getPlayerProfile } from "@/lib/services/player-profile";
-import { updatePlayer } from "@/lib/services/players-write";
+import { deletePlayer, updatePlayer } from "@/lib/services/players-write";
 
 export const runtime = "nodejs";
 
@@ -99,5 +99,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update player.";
     return Response.json({ ok: false, error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const playerId = Number(id);
+
+  if (!Number.isInteger(playerId) || playerId <= 0) {
+    return Response.json({ ok: false, error: "Invalid player id." }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deletePlayer(playerId);
+
+    if (!deleted) {
+      return Response.json({ ok: false, error: "Player not found." }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete player.";
+    return Response.json({ ok: false, error: message }, { status: 409 });
   }
 }

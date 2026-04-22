@@ -1,5 +1,5 @@
 import { getClubProfile } from "@/lib/services/club-profile";
-import { updateClub } from "@/lib/services/clubs-write";
+import { deleteClub, updateClub } from "@/lib/services/clubs-write";
 
 export const runtime = "nodejs";
 
@@ -84,5 +84,27 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update club.";
     return Response.json({ ok: false, error: message }, { status: 400 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  const { id } = await context.params;
+  const clubId = Number(id);
+
+  if (!Number.isInteger(clubId) || clubId <= 0) {
+    return Response.json({ ok: false, error: "Invalid club id." }, { status: 400 });
+  }
+
+  try {
+    const deleted = await deleteClub(clubId);
+
+    if (!deleted) {
+      return Response.json({ ok: false, error: "Club not found." }, { status: 404 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete club.";
+    return Response.json({ ok: false, error: message }, { status: 409 });
   }
 }
