@@ -1,5 +1,6 @@
 import { TransferType } from "@prisma/client";
 
+import { badRequest, notFound, successResponse } from "@/lib/http/api-response";
 import { getTransferProfile } from "@/lib/services/transfer-profile";
 import { deleteTransfer, updateTransfer } from "@/lib/services/transfers-write";
 
@@ -16,16 +17,16 @@ export async function GET(_request: Request, context: RouteContext) {
   const transferId = Number(id);
 
   if (!Number.isInteger(transferId) || transferId <= 0) {
-    return Response.json({ ok: false, error: "Invalid transfer id." }, { status: 400 });
+    return badRequest("Invalid transfer id.");
   }
 
   const profile = await getTransferProfile(transferId);
 
   if (!profile.data) {
-    return Response.json({ ok: false, error: "Transfer not found." }, { status: 404 });
+    return notFound("Transfer not found.");
   }
 
-  return Response.json({ ok: true, data: profile.data });
+  return successResponse({ data: profile.data });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -33,7 +34,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const transferId = Number(id);
 
   if (!Number.isInteger(transferId) || transferId <= 0) {
-    return Response.json({ ok: false, error: "Invalid transfer id." }, { status: 400 });
+    return badRequest("Invalid transfer id.");
   }
 
   try {
@@ -53,13 +54,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     const updated = await updateTransfer(transferId, payload);
 
     if (!updated) {
-      return Response.json({ ok: false, error: "Transfer not found." }, { status: 404 });
+      return notFound("Transfer not found.");
     }
 
-    return Response.json({ ok: true, data: updated });
+    return successResponse({ data: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update transfer.";
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return badRequest(message);
   }
 }
 
@@ -68,19 +69,19 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const transferId = Number(id);
 
   if (!Number.isInteger(transferId) || transferId <= 0) {
-    return Response.json({ ok: false, error: "Invalid transfer id." }, { status: 400 });
+    return badRequest("Invalid transfer id.");
   }
 
   try {
     const deleted = await deleteTransfer(transferId);
 
     if (!deleted) {
-      return Response.json({ ok: false, error: "Transfer not found." }, { status: 404 });
+      return notFound("Transfer not found.");
     }
 
-    return Response.json({ ok: true });
+    return successResponse({});
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete transfer.";
-    return Response.json({ ok: false, error: message }, { status: 409 });
+    return badRequest(message);
   }
 }

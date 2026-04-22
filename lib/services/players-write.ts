@@ -37,6 +37,19 @@ type PlayerWriteResult = {
   updatedAt: string;
 };
 
+type DeletePlayerResult =
+  | {
+      deleted: true;
+    }
+  | {
+      deleted: false;
+      error: string;
+      dependencies: {
+        contracts: number;
+        transfers: number;
+      };
+    };
+
 function toDecimal(value: string | number): Prisma.Decimal {
   return new Prisma.Decimal(value);
 }
@@ -126,7 +139,7 @@ export async function updatePlayer(id: number, input: UpdatePlayerInput): Promis
   return mapPlayer(updated);
 }
 
-export async function deletePlayer(id: number): Promise<boolean | null> {
+export async function deletePlayer(id: number): Promise<DeletePlayerResult | null> {
   const existing = await prisma.player.findUnique({ where: { id }, select: { id: true } });
   if (!existing) {
     return null;
@@ -136,9 +149,16 @@ export async function deletePlayer(id: number): Promise<boolean | null> {
   const linkedTransfers = await prisma.transfer.count({ where: { playerId: id } });
 
   if (linkedContracts > 0 || linkedTransfers > 0) {
-    throw new Error("Cannot delete player while contracts or transfers exist.");
+    return {
+      deleted: false,
+      error: "Cannot delete player while contracts or transfers exist.",
+      dependencies: {
+        contracts: linkedContracts,
+        transfers: linkedTransfers,
+      },
+    };
   }
 
   await prisma.player.delete({ where: { id } });
-  return true;
+  return { deleted: true };
 }

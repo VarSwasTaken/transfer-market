@@ -1,5 +1,6 @@
 import { getContractsList } from "@/lib/services/contracts-list";
 import { createContract } from "@/lib/services/contracts-write";
+import { badRequest, createdResponse, successResponse } from "@/lib/http/api-response";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
     playerId,
   });
 
-  return Response.json({ ok: true, data: result.data, meta: result.meta });
+  return successResponse({ data: result.data, meta: result.meta });
 }
 
 export async function POST(request: Request) {
@@ -43,10 +44,7 @@ export async function POST(request: Request) {
       typeof body.endDate !== "string" ||
       (typeof body.salary !== "string" && typeof body.salary !== "number")
     ) {
-      return Response.json(
-        { ok: false, error: "Invalid payload for contract creation." },
-        { status: 400 },
-      );
+      return badRequest("Invalid payload for contract creation.");
     }
 
     const created = await createContract({
@@ -62,9 +60,9 @@ export async function POST(request: Request) {
           : undefined,
     });
 
-    return Response.json({ ok: true, data: created }, { status: 201 });
+    return createdResponse({ data: created });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create contract.";
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return badRequest(message);
   }
 }

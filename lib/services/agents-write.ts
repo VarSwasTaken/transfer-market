@@ -15,6 +15,18 @@ type AgentWriteResult = {
   updatedAt: string;
 };
 
+type DeleteAgentResult =
+  | {
+      deleted: true;
+    }
+  | {
+      deleted: false;
+      error: string;
+      dependencies: {
+        players: number;
+      };
+    };
+
 function mapAgent(agent: {
   id: number;
   name: string;
@@ -59,7 +71,7 @@ export async function updateAgent(id: number, input: UpdateAgentInput): Promise<
   return mapAgent(updated);
 }
 
-export async function deleteAgent(id: number): Promise<boolean | null> {
+export async function deleteAgent(id: number): Promise<DeleteAgentResult | null> {
   const existing = await prisma.agent.findUnique({ where: { id }, select: { id: true } });
   if (!existing) {
     return null;
@@ -67,9 +79,15 @@ export async function deleteAgent(id: number): Promise<boolean | null> {
 
   const linkedPlayers = await prisma.player.count({ where: { agentId: id } });
   if (linkedPlayers > 0) {
-    throw new Error("Cannot delete agent while players are assigned to it.");
+    return {
+      deleted: false,
+      error: "Cannot delete agent while players are assigned to it.",
+      dependencies: {
+        players: linkedPlayers,
+      },
+    };
   }
 
   await prisma.agent.delete({ where: { id } });
-  return true;
+  return { deleted: true };
 }

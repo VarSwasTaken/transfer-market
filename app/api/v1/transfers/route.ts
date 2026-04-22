@@ -1,5 +1,6 @@
 import { TransferType } from "@prisma/client";
 
+import { badRequest, createdResponse, successResponse } from "@/lib/http/api-response";
 import { getTransfersList } from "@/lib/services/transfers-list";
 import { createTransfer } from "@/lib/services/transfers-write";
 
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
     transferType,
   });
 
-  return Response.json({ ok: true, data: result.data, meta: result.meta });
+  return successResponse({ data: result.data, meta: result.meta });
 }
 
 export async function POST(request: Request) {
@@ -63,10 +64,7 @@ export async function POST(request: Request) {
       typeof body.toClubId !== "number" ||
       (typeof body.fee !== "string" && typeof body.fee !== "number")
     ) {
-      return Response.json(
-        { ok: false, error: "Invalid payload for transfer creation." },
-        { status: 400 },
-      );
+      return badRequest("Invalid payload for transfer creation.");
     }
 
     if (
@@ -75,10 +73,7 @@ export async function POST(request: Request) {
       body.transferType !== "LOAN" &&
       body.transferType !== "FREE"
     ) {
-      return Response.json(
-        { ok: false, error: "Invalid transferType value." },
-        { status: 400 },
-      );
+      return badRequest("Invalid transferType value.");
     }
 
     if (
@@ -86,10 +81,7 @@ export async function POST(request: Request) {
       body.contract !== null &&
       (typeof body.contract !== "object" || Array.isArray(body.contract))
     ) {
-      return Response.json(
-        { ok: false, error: "Invalid contract object." },
-        { status: 400 },
-      );
+      return badRequest("Invalid contract object.");
     }
 
     const contract = body.contract as Record<string, unknown> | null | undefined;
@@ -100,10 +92,7 @@ export async function POST(request: Request) {
         typeof contract.endDate !== "string" ||
         (typeof contract.salary !== "string" && typeof contract.salary !== "number"))
     ) {
-      return Response.json(
-        { ok: false, error: "Invalid contract payload." },
-        { status: 400 },
-      );
+      return badRequest("Invalid contract payload.");
     }
 
     const created = await createTransfer({
@@ -136,9 +125,9 @@ export async function POST(request: Request) {
         : undefined,
     });
 
-    return Response.json({ ok: true, data: created }, { status: 201 });
+    return createdResponse({ data: created });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create transfer.";
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return badRequest(message);
   }
 }

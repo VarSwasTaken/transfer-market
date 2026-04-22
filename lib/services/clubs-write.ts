@@ -21,6 +21,20 @@ type ClubWriteResult = {
   updatedAt: string;
 };
 
+type DeleteClubResult =
+  | {
+      deleted: true;
+    }
+  | {
+      deleted: false;
+      error: string;
+      dependencies: {
+        players: number;
+        transfersIn: number;
+        transfersOut: number;
+      };
+    };
+
 function toDecimal(value: string | number): Prisma.Decimal {
   return new Prisma.Decimal(value);
 }
@@ -77,7 +91,7 @@ export async function updateClub(id: number, input: UpdateClubInput): Promise<Cl
   return mapClub(updated);
 }
 
-export async function deleteClub(id: number): Promise<boolean | null> {
+export async function deleteClub(id: number): Promise<DeleteClubResult | null> {
   const existing = await prisma.club.findUnique({ where: { id }, select: { id: true } });
   if (!existing) {
     return null;
@@ -88,9 +102,17 @@ export async function deleteClub(id: number): Promise<boolean | null> {
   const linkedTransfersOut = await prisma.transfer.count({ where: { fromClubId: id } });
 
   if (linkedPlayers > 0 || linkedTransfersIn > 0 || linkedTransfersOut > 0) {
-    throw new Error("Cannot delete club while players or transfers are linked to it.");
+    return {
+      deleted: false,
+      error: "Cannot delete club while players or transfers are linked to it.",
+      dependencies: {
+        players: linkedPlayers,
+        transfersIn: linkedTransfersIn,
+        transfersOut: linkedTransfersOut,
+      },
+    };
   }
 
   await prisma.club.delete({ where: { id } });
-  return true;
+  return { deleted: true };
 }

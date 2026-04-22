@@ -1,5 +1,6 @@
 import { getLeagueProfile } from "@/lib/services/league-profile";
 import { deleteLeague, updateLeague } from "@/lib/services/leagues-write";
+import { badRequest, conflict, notFound, successResponse } from "@/lib/http/api-response";
 
 export const runtime = "nodejs";
 
@@ -14,37 +15,16 @@ export async function GET(_request: Request, context: RouteContext) {
   const leagueId = Number(id);
 
   if (!Number.isInteger(leagueId) || leagueId <= 0) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Invalid league id.",
-      },
-      {
-        status: 400,
-      },
-    );
+    return badRequest("Invalid league id.");
   }
 
   const profile = await getLeagueProfile(leagueId);
 
   if (!profile.data) {
-    return Response.json(
-      {
-        ok: false,
-        error: "League not found.",
-        warnings: profile.warnings,
-      },
-      {
-        status: 404,
-      },
-    );
+    return notFound("League not found.", { warnings: profile.warnings });
   }
 
-  return Response.json({
-    ok: true,
-    data: profile.data,
-    warnings: profile.warnings,
-  });
+  return successResponse({ data: profile.data, warnings: profile.warnings });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -52,15 +32,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const leagueId = Number(id);
 
   if (!Number.isInteger(leagueId) || leagueId <= 0) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Invalid league id.",
-      },
-      {
-        status: 400,
-      },
-    );
+    return badRequest("Invalid league id.");
   }
 
   try {
@@ -74,13 +46,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     const updated = await updateLeague(leagueId, payload);
 
     if (!updated) {
-      return Response.json({ ok: false, error: "League not found." }, { status: 404 });
+      return notFound("League not found.");
     }
 
-    return Response.json({ ok: true, data: updated });
+    return successResponse({ data: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update league.";
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return badRequest(message);
   }
 }
 
@@ -89,19 +61,23 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const leagueId = Number(id);
 
   if (!Number.isInteger(leagueId) || leagueId <= 0) {
-    return Response.json({ ok: false, error: "Invalid league id." }, { status: 400 });
+    return badRequest("Invalid league id.");
   }
 
   try {
     const deleted = await deleteLeague(leagueId);
 
     if (!deleted) {
-      return Response.json({ ok: false, error: "League not found." }, { status: 404 });
+      return notFound("League not found.");
     }
 
-    return Response.json({ ok: true });
+    if (!deleted.deleted) {
+      return conflict(deleted.error, { dependencies: deleted.dependencies });
+    }
+
+    return successResponse({});
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete league.";
-    return Response.json({ ok: false, error: message }, { status: 409 });
+    return badRequest(message);
   }
 }

@@ -17,6 +17,18 @@ type LeagueWriteResult = {
   updatedAt: string;
 };
 
+type DeleteLeagueResult =
+  | {
+      deleted: true;
+    }
+  | {
+      deleted: false;
+      error: string;
+      dependencies: {
+        clubs: number;
+      };
+    };
+
 function mapLeague(league: {
   id: number;
   name: string;
@@ -68,7 +80,7 @@ export async function updateLeague(
   return mapLeague(updated);
 }
 
-export async function deleteLeague(id: number): Promise<boolean | null> {
+export async function deleteLeague(id: number): Promise<DeleteLeagueResult | null> {
   const existing = await prisma.league.findUnique({ where: { id }, select: { id: true } });
   if (!existing) {
     return null;
@@ -76,9 +88,15 @@ export async function deleteLeague(id: number): Promise<boolean | null> {
 
   const linkedClubs = await prisma.club.count({ where: { leagueId: id } });
   if (linkedClubs > 0) {
-    throw new Error("Cannot delete league while clubs are assigned to it.");
+    return {
+      deleted: false,
+      error: "Cannot delete league while clubs are assigned to it.",
+      dependencies: {
+        clubs: linkedClubs,
+      },
+    };
   }
 
   await prisma.league.delete({ where: { id } });
-  return true;
+  return { deleted: true };
 }

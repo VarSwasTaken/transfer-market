@@ -1,5 +1,6 @@
 import { getPlayerProfile } from "@/lib/services/player-profile";
 import { deletePlayer, updatePlayer } from "@/lib/services/players-write";
+import { badRequest, conflict, notFound, successResponse } from "@/lib/http/api-response";
 
 export const runtime = "nodejs";
 
@@ -14,37 +15,16 @@ export async function GET(_request: Request, context: RouteContext) {
   const playerId = Number(id);
 
   if (!Number.isInteger(playerId) || playerId <= 0) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Invalid player id.",
-      },
-      {
-        status: 400,
-      },
-    );
+    return badRequest("Invalid player id.");
   }
 
   const profile = await getPlayerProfile(playerId);
 
   if (!profile.data) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Player not found.",
-        warnings: profile.warnings,
-      },
-      {
-        status: 404,
-      },
-    );
+    return notFound("Player not found.", { warnings: profile.warnings });
   }
 
-  return Response.json({
-    ok: true,
-    data: profile.data,
-    warnings: profile.warnings,
-  });
+  return successResponse({ data: profile.data, warnings: profile.warnings });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -52,15 +32,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const playerId = Number(id);
 
   if (!Number.isInteger(playerId) || playerId <= 0) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Invalid player id.",
-      },
-      {
-        status: 400,
-      },
-    );
+    return badRequest("Invalid player id.");
   }
 
   try {
@@ -92,13 +64,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     const updated = await updatePlayer(playerId, payload);
 
     if (!updated) {
-      return Response.json({ ok: false, error: "Player not found." }, { status: 404 });
+      return notFound("Player not found.");
     }
 
-    return Response.json({ ok: true, data: updated });
+    return successResponse({ data: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update player.";
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return badRequest(message);
   }
 }
 
@@ -107,19 +79,23 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const playerId = Number(id);
 
   if (!Number.isInteger(playerId) || playerId <= 0) {
-    return Response.json({ ok: false, error: "Invalid player id." }, { status: 400 });
+    return badRequest("Invalid player id.");
   }
 
   try {
     const deleted = await deletePlayer(playerId);
 
     if (!deleted) {
-      return Response.json({ ok: false, error: "Player not found." }, { status: 404 });
+      return notFound("Player not found.");
     }
 
-    return Response.json({ ok: true });
+    if (!deleted.deleted) {
+      return conflict(deleted.error, { dependencies: deleted.dependencies });
+    }
+
+    return successResponse({});
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete player.";
-    return Response.json({ ok: false, error: message }, { status: 409 });
+    return badRequest(message);
   }
 }

@@ -1,5 +1,6 @@
 import { getContractProfile } from "@/lib/services/contract-profile";
 import { deleteContract, updateContract } from "@/lib/services/contracts-write";
+import { badRequest, notFound, successResponse } from "@/lib/http/api-response";
 
 export const runtime = "nodejs";
 
@@ -14,16 +15,16 @@ export async function GET(_request: Request, context: RouteContext) {
   const contractId = Number(id);
 
   if (!Number.isInteger(contractId) || contractId <= 0) {
-    return Response.json({ ok: false, error: "Invalid contract id." }, { status: 400 });
+    return badRequest("Invalid contract id.");
   }
 
   const profile = await getContractProfile(contractId);
 
   if (!profile.data) {
-    return Response.json({ ok: false, error: "Contract not found." }, { status: 404 });
+    return notFound("Contract not found.");
   }
 
-  return Response.json({ ok: true, data: profile.data });
+  return successResponse({ data: profile.data });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -31,7 +32,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const contractId = Number(id);
 
   if (!Number.isInteger(contractId) || contractId <= 0) {
-    return Response.json({ ok: false, error: "Invalid contract id." }, { status: 400 });
+    return badRequest("Invalid contract id.");
   }
 
   try {
@@ -55,13 +56,13 @@ export async function PATCH(request: Request, context: RouteContext) {
     const updated = await updateContract(contractId, payload);
 
     if (!updated) {
-      return Response.json({ ok: false, error: "Contract not found." }, { status: 404 });
+      return notFound("Contract not found.");
     }
 
-    return Response.json({ ok: true, data: updated });
+    return successResponse({ data: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update contract.";
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return badRequest(message);
   }
 }
 
@@ -70,19 +71,19 @@ export async function DELETE(_request: Request, context: RouteContext) {
   const contractId = Number(id);
 
   if (!Number.isInteger(contractId) || contractId <= 0) {
-    return Response.json({ ok: false, error: "Invalid contract id." }, { status: 400 });
+    return badRequest("Invalid contract id.");
   }
 
   try {
     const deleted = await deleteContract(contractId);
 
     if (!deleted) {
-      return Response.json({ ok: false, error: "Contract not found." }, { status: 404 });
+      return notFound("Contract not found.");
     }
 
-    return Response.json({ ok: true });
+    return successResponse({});
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete contract.";
-    return Response.json({ ok: false, error: message }, { status: 409 });
+    return badRequest(message);
   }
 }
