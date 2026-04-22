@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 const MAX_LIMIT = 20;
 
 function parseType(value: string | null): SearchType {
-  if (value === "players" || value === "clubs" || value === "leagues") {
+  if (value === "players" || value === "clubs" || value === "leagues" || value === "agents") {
     return value;
   }
   return "all";

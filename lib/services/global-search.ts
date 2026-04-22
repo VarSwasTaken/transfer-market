@@ -1,8 +1,9 @@
+import { getAgentsList } from "@/lib/services/agents-list";
 import { getClubsList } from "@/lib/services/clubs-list";
 import { getLeaguesList } from "@/lib/services/leagues-list";
 import { getPlayersList } from "@/lib/services/players-list";
 
-export type SearchType = "all" | "players" | "clubs" | "leagues";
+export type SearchType = "all" | "players" | "clubs" | "leagues" | "agents";
 
 type GlobalSearchInput = {
   query: string;
@@ -14,6 +15,7 @@ type GlobalSearchResult = {
   players: Awaited<ReturnType<typeof getPlayersList>>["data"];
   clubs: Awaited<ReturnType<typeof getClubsList>>["data"];
   leagues: Awaited<ReturnType<typeof getLeaguesList>>["data"];
+  agents: Awaited<ReturnType<typeof getAgentsList>>["items"];
 };
 
 export async function getGlobalSearch(input: GlobalSearchInput): Promise<GlobalSearchResult> {
@@ -30,6 +32,7 @@ export async function getGlobalSearch(input: GlobalSearchInput): Promise<GlobalS
       players: players.data,
       clubs: [],
       leagues: [],
+      agents: [],
     };
   }
 
@@ -46,6 +49,7 @@ export async function getGlobalSearch(input: GlobalSearchInput): Promise<GlobalS
       players: [],
       clubs: clubs.data,
       leagues: [],
+      agents: [],
     };
   }
 
@@ -62,10 +66,28 @@ export async function getGlobalSearch(input: GlobalSearchInput): Promise<GlobalS
       players: [],
       clubs: [],
       leagues: leagues.data,
+      agents: [],
     };
   }
 
-  const [players, clubs, leagues] = await Promise.all([
+  if (input.type === "agents") {
+    const agents = await getAgentsList({
+      page: 1,
+      limit: input.limit,
+      search: input.query,
+      sortBy: "name",
+      sortOrder: "asc",
+    });
+
+    return {
+      players: [],
+      clubs: [],
+      leagues: [],
+      agents: agents.items,
+    };
+  }
+
+  const [players, clubs, leagues, agents] = await Promise.all([
     getPlayersList({
       page: 1,
       limit: input.limit,
@@ -87,11 +109,19 @@ export async function getGlobalSearch(input: GlobalSearchInput): Promise<GlobalS
       sortBy: "name",
       sortOrder: "asc",
     }),
+    getAgentsList({
+      page: 1,
+      limit: input.limit,
+      search: input.query,
+      sortBy: "name",
+      sortOrder: "asc",
+    }),
   ]);
 
   return {
     players: players.data,
     clubs: clubs.data,
     leagues: leagues.data,
+    agents: agents.items,
   };
 }
