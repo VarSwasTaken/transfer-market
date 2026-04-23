@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import mongoose from 'mongoose';
-import ScoutingReport from '../../models/ScoutingReport';
 import Injury from '../../models/Injury';
+import TransferRumor from '../../models/TransferRumor';
 import "dotenv/config";
 
 const connectionString = `${process.env.DATABASE_URL}`;
@@ -15,95 +15,202 @@ async function seedNoSQL() {
   console.log('🍃 Łączenie z MongoDB Atlas...');
   await mongoose.connect(process.env.MONGODB_URI!);
   
-  await ScoutingReport.deleteMany({});
   await Injury.deleteMany({});
+  await TransferRumor.deleteMany({});
 
-  // Lista zawodników, dla których chcemy mieć bogate dane NoSQL
-  const scoutingData = [
+  // Lista zawodników, dla których chcemy mieć dane medyczne NoSQL
+  const injuriesData = [
     { 
       firstName: 'Robert', lastName: 'Lewandowski', 
-      report: { rating: 88, potential: 'High', pros: ['Wykończenie', 'Ustawianie się', 'Rzuty karne'], cons: ['Wiek'], notes: 'Klasyczna "dziewiątka". Mimo upływu lat, wciąż jeden z najlepszych na świecie.' },
       injury: { type: 'Przeciążenie pleców', severity: 'Lekka', days: 7, status: 'Wyleczona' }
     },
     { 
-      firstName: 'Kylian', lastName: 'Mbappé', 
-      report: { rating: 97, potential: 'World Class', pros: ['Szybkość', 'Dribbling', 'Wykończenie'], cons: ['Gra w obronie'], notes: 'Najgroźniejszy zawodnik w kontrataku na świecie. Samodzielnie wygrywa mecze.' }
-    },
-    { 
       firstName: 'Lamine', lastName: 'Yamal', 
-      report: { rating: 85, potential: 'World Class', pros: ['Kreatywność', '1vs1', 'Pewność siebie'], cons: ['Budowa fizyczna'], notes: 'Największy talent La Masii od lat. Musi być prowadzony ostrożnie ze względu na wiek.' },
       injury: { type: 'Uraz mięśniowy', severity: 'Średnia', days: 14, status: 'Rehabilitacja' }
     },
     { 
-      firstName: 'Jude', lastName: 'Bellingham', 
-      report: { rating: 94, potential: 'World Class', pros: ['Mentalność', 'Box-to-box', 'Siła'], cons: ['Agresja'], notes: 'Lider środka pola. Niesamowita dojrzałość jak na ten wiek.' }
-    },
-    { 
       firstName: 'Erling', lastName: 'Haaland', 
-      report: { rating: 95, potential: 'World Class', pros: ['Siła fizyczna', 'Instynkt', 'Szybkość'], cons: ['Rozegranie'], notes: 'Maszyna do strzelania goli. Wymaga odpowiedniego serwisu z bocznych sektorów.' },
       injury: { type: 'Uraz stopy', severity: 'Poważna', days: 30, status: 'W trakcie leczenia' }
     },
     { 
       firstName: 'Kevin', lastName: 'De Bruyne', 
-      report: { rating: 91, potential: 'High', pros: ['Przegląd pola', 'Dośrodkowania', 'Strzał z dystansu'], cons: ['Podatność na kontuzje'], notes: 'Mózg drużyny. Każde podanie to potencjalna asysta.' },
       injury: { type: 'Zerwanie ścięgna', severity: 'Krytyczna', days: 120, status: 'Wyleczona' }
     },
     { 
-      firstName: 'Vinícius', lastName: 'Júnior', 
-      report: { rating: 93, potential: 'World Class', pros: ['Drybling', 'Szybkość', 'Balans'], cons: ['Decyzyjność'], notes: 'Potrafi ośmieszyć każdego obrońcę. Kluczowy w systemie Carlo Ancelottiego.' }
-    },
-    { 
       firstName: 'Pedri', lastName: '', 
-      report: { rating: 89, potential: 'World Class', pros: ['Kontrola piłki', 'Inteligencja', 'Pressing'], cons: ['Kruchość fizyczna'], notes: 'Dyrygent środka pola. Czyta grę dwa kroki przed innymi.' },
       injury: { type: 'Uraz uda', severity: 'Średnia', days: 21, status: 'W trakcie leczenia' }
     }
   ];
 
-  for (const data of scoutingData) {
+  for (const data of injuriesData) {
     const player = await prisma.player.findFirst({
       where: { firstName: data.firstName, lastName: data.lastName }
     });
 
-    if (player) {
-      console.log(`📝 Generowanie raportów dla: ${player.firstName} ${player.lastName}`);
+    if (player && data.injury) {
+      console.log(`🩺 Generowanie danych medycznych dla: ${player.firstName} ${player.lastName}`);
 
-      // Tworzenie Raportu Skauta
-      await ScoutingReport.create({
+      const start = new Date();
+      start.setDate(start.getDate() - data.injury.days);
+
+      await Injury.create({
         playerId: player.id,
-        scoutName: 'Marco Polo (Główny Skaut)',
-        rating: data.report.rating,
-        potential: data.report.potential,
-        pros: data.report.pros,
-        cons: data.report.cons,
-        notes: data.report.notes,
-        attributes: {
-          pace: Math.floor(Math.random() * 30) + 70,
-          shooting: Math.floor(Math.random() * 30) + 60,
-          passing: Math.floor(Math.random() * 30) + 65,
-          dribbling: Math.floor(Math.random() * 30) + 70,
-          defending: Math.floor(Math.random() * 40) + 30,
-          physical: Math.floor(Math.random() * 30) + 60
-        }
+        type: data.injury.type,
+        severity: data.injury.severity,
+        startDate: start,
+        status: data.injury.status,
+        description: `Automatyczny raport medyczny: ${data.injury.type}.`
       });
-
-      // Tworzenie Kontuzji (jeśli zdefiniowano w obiekcie)
-      if (data.injury) {
-        const start = new Date();
-        start.setDate(start.getDate() - data.injury.days);
-        
-        await Injury.create({
-          playerId: player.id,
-          type: data.injury.type,
-          severity: data.injury.severity,
-          startDate: start,
-          status: data.injury.status,
-          description: `Automatyczny raport medyczny: ${data.injury.type}.`
-        });
-      }
     }
   }
 
-  console.log('✅ MongoDB Atlas zostało wypełnione danymi NoSQL!');
+  const clubs = await prisma.club.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  const clubIdByName = new Map(clubs.map((club) => [club.name, club.id]));
+
+  const transferRumorsData = [
+    {
+      firstName: 'Kylian',
+      lastName: 'Mbappé',
+      toClubName: 'Liverpool',
+      rumor: {
+        source: 'L Equipe',
+        credibility: 'High',
+        status: 'Active',
+        rumorType: 'Transfer',
+        rumoredFee: 175000000,
+        salaryExpectation: 28000000,
+        contractYears: 5,
+        currency: 'EUR',
+        links: ['https://example.com/mbappe-liverpool'],
+        notes: 'Klub sonduje możliwość wielkiego transferu przy założeniu sprzedaży kilku zawodników.',
+        publishedDaysAgo: 2,
+        expiresInDays: 12,
+      },
+    },
+    {
+      firstName: 'Lamine',
+      lastName: 'Yamal',
+      toClubName: 'Paris Saint-Germain',
+      rumor: {
+        source: 'Marca',
+        credibility: 'Medium',
+        status: 'Denied',
+        rumorType: 'Transfer',
+        rumoredFee: 220000000,
+        salaryExpectation: 18000000,
+        contractYears: 6,
+        currency: 'EUR',
+        links: ['https://example.com/yamal-psg'],
+        notes: 'Plotka szybko zdementowana przez otoczenie zawodnika.',
+        publishedDaysAgo: 10,
+        expiresInDays: 3,
+      },
+    },
+    {
+      firstName: 'Erling',
+      lastName: 'Haaland',
+      toClubName: 'Real Madrid',
+      rumor: {
+        source: 'The Athletic',
+        credibility: 'High',
+        status: 'Confirmed',
+        rumorType: 'Transfer',
+        rumoredFee: 200000000,
+        salaryExpectation: 30000000,
+        contractYears: 5,
+        currency: 'EUR',
+        links: ['https://example.com/haaland-real'],
+        notes: 'Temat mocno zaawansowany według kilku źródeł z rynku.',
+        publishedDaysAgo: 20,
+        expiresInDays: 1,
+      },
+    },
+    {
+      firstName: 'Kevin',
+      lastName: 'De Bruyne',
+      toClubName: 'Inter Milan',
+      rumor: {
+        source: 'Fabrizio Romano',
+        credibility: 'Medium',
+        status: 'Active',
+        rumorType: 'Loan',
+        rumoredLoanFee: 7000000,
+        salaryExpectation: 12000000,
+        contractYears: 1,
+        currency: 'EUR',
+        links: ['https://example.com/debruyne-inter'],
+        notes: 'Wariant wypożyczenia z dużym pokryciem pensji przez obecny klub.',
+        publishedDaysAgo: 4,
+        expiresInDays: 20,
+      },
+    },
+    {
+      firstName: 'Robert',
+      lastName: 'Lewandowski',
+      toClubName: 'Arsenal',
+      rumor: {
+        source: 'Sky Sports',
+        credibility: 'Low',
+        status: 'Expired',
+        rumorType: 'Swap',
+        salaryExpectation: 15000000,
+        contractYears: 2,
+        currency: 'EUR',
+        links: ['https://example.com/lewy-arsenal'],
+        notes: 'Wątek wymiany nie przeszedł do etapu realnych negocjacji.',
+        publishedDaysAgo: 35,
+        expiresInDays: -2,
+      },
+    },
+  ];
+
+  for (const data of transferRumorsData) {
+    const player = await prisma.player.findFirst({
+      where: { firstName: data.firstName, lastName: data.lastName },
+      select: { id: true, clubId: true, firstName: true, lastName: true },
+    });
+
+    if (!player) {
+      continue;
+    }
+
+    const toClubId = clubIdByName.get(data.toClubName) ?? null;
+
+    const publishedAt = new Date();
+    publishedAt.setDate(publishedAt.getDate() - data.rumor.publishedDaysAgo);
+
+    const expiresAt = new Date(publishedAt);
+    expiresAt.setDate(expiresAt.getDate() + data.rumor.expiresInDays);
+
+    console.log(`🗞️ Generowanie plotki transferowej dla: ${player.firstName} ${player.lastName}`);
+
+    await TransferRumor.create({
+      playerId: player.id,
+      fromClubId: player.clubId ?? null,
+      toClubId,
+      source: data.rumor.source,
+      credibility: data.rumor.credibility,
+      status: data.rumor.status,
+      rumorType: data.rumor.rumorType,
+      rumoredFee: data.rumor.rumoredFee,
+      rumoredLoanFee: data.rumor.rumoredLoanFee,
+      salaryExpectation: data.rumor.salaryExpectation,
+      contractYears: data.rumor.contractYears,
+      currency: data.rumor.currency,
+      links: data.rumor.links,
+      notes: data.rumor.notes,
+      publishedAt,
+      expiresAt,
+    });
+  }
+
+  console.log('✅ MongoDB Atlas zostało wypełnione danymi medycznymi i plotkami transferowymi NoSQL!');
 }
 
 seedNoSQL()

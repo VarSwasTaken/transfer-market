@@ -129,36 +129,48 @@ export async function runCrudLifecycleSuite(context) {
   });
   assert.equal(patchInjury.response.status, 200, "PATCH /injuries/:id should return 200");
 
-  const createScoutReport = await callApi(baseUrl, "/api/v1/scout-reports", {
+  const createTransferRumor = await callApi(baseUrl, "/api/v1/transfer-rumors", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       playerId,
-      scoutName: "Integration Scout",
-      rating: 78,
-      potential: "High",
-      pros: ["pace", "vision"],
-      cons: ["heading"],
-      attributes: {
-        pace: 80,
-        passing: 82,
-      },
+      fromClubId: clubId,
+      toClubId: baseline.clubId,
+      source: "IT Rumor Feed",
+      status: "Active",
+      credibility: "Medium",
+      rumorType: "Loan",
     }),
   });
-  assert.equal(createScoutReport.response.status, 201, "POST /scout-reports should return 201");
-  const scoutReportId = createScoutReport.json.data?.id;
-  assert.equal(typeof scoutReportId, "string", "Created scout report id should be a string");
-  created.scoutReports.push(scoutReportId);
+  assert.equal(createTransferRumor.response.status, 201, "POST /transfer-rumors should return 201");
+  const transferRumorId = createTransferRumor.json.data?.id;
+  assert.equal(typeof transferRumorId, "string", "Created transfer rumor id should be a string");
+  created.transferRumors.push(transferRumorId);
 
-  const getScoutReport = await callApi(baseUrl, `/api/v1/scout-reports/${scoutReportId}`);
-  assert.equal(getScoutReport.response.status, 200, "GET /scout-reports/:id should return 200");
+  const getTransferRumor = await callApi(baseUrl, `/api/v1/transfer-rumors/${transferRumorId}`);
+  assert.equal(getTransferRumor.response.status, 200, "GET /transfer-rumors/:id should return 200");
 
-  const patchScoutReport = await callApi(baseUrl, `/api/v1/scout-reports/${scoutReportId}`, {
+  const patchTransferRumorStatus = await callApi(
+    baseUrl,
+    `/api/v1/transfer-rumors/${transferRumorId}/status`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "Confirmed" }),
+    },
+  );
+  assert.equal(
+    patchTransferRumorStatus.response.status,
+    200,
+    "PATCH /transfer-rumors/:id/status should return 200",
+  );
+
+  const patchTransferRumor = await callApi(baseUrl, `/api/v1/transfer-rumors/${transferRumorId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ notes: "Updated after second watch", rating: 81 }),
+    body: JSON.stringify({ notes: "Updated rumor notes", credibility: "High" }),
   });
-  assert.equal(patchScoutReport.response.status, 200, "PATCH /scout-reports/:id should return 200");
+  assert.equal(patchTransferRumor.response.status, 200, "PATCH /transfer-rumors/:id should return 200");
 
   const createInvalidContract = await callApi(baseUrl, "/api/v1/contracts", {
     method: "POST",
@@ -279,11 +291,11 @@ export async function runCrudLifecycleSuite(context) {
   assert.equal(deleteInjury.response.status, 200, "DELETE /injuries/:id should return 200");
   created.injuries = created.injuries.filter((id) => id !== injuryId);
 
-  const deleteScoutReport = await callApi(baseUrl, `/api/v1/scout-reports/${scoutReportId}`, {
+  const deleteTransferRumor = await callApi(baseUrl, `/api/v1/transfer-rumors/${transferRumorId}`, {
     method: "DELETE",
   });
-  assert.equal(deleteScoutReport.response.status, 200, "DELETE /scout-reports/:id should return 200");
-  created.scoutReports = created.scoutReports.filter((id) => id !== scoutReportId);
+  assert.equal(deleteTransferRumor.response.status, 200, "DELETE /transfer-rumors/:id should return 200");
+  created.transferRumors = created.transferRumors.filter((id) => id !== transferRumorId);
 
   const deletePlayerWithTransfers = await callApi(baseUrl, `/api/v1/players/${playerId}`, {
     method: "DELETE",

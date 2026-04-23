@@ -12,7 +12,7 @@ export async function runSmokeAndGuardsSuite(context) {
     "/api/v1/transfers?page=1&limit=5",
     "/api/v1/contracts?page=1&limit=5",
     "/api/v1/injuries?page=1&limit=5",
-    "/api/v1/scout-reports?page=1&limit=5",
+    "/api/v1/transfer-rumors?page=1&limit=5",
   ];
 
   for (const endpoint of smokeEndpoints) {

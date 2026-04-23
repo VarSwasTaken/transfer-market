@@ -1,5 +1,4 @@
 import Injury from "@/models/Injury";
-import ScoutingReport from "@/models/ScoutingReport";
 
 import { connectToDatabase } from "@/lib/mongoose";
 import { prisma } from "@/lib/prisma";
@@ -47,30 +46,12 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
     },
   });
 
-  let scoutingReports: Array<Record<string, unknown>> = [];
   let injuries: Array<Record<string, unknown>> = [];
 
   try {
     await connectToDatabase();
 
-    const [scoutingDocs, injuryDocs] = await Promise.all([
-      ScoutingReport.find({ playerId }).sort({ date: -1 }).limit(10).exec(),
-      Injury.find({ playerId }).sort({ startDate: -1 }).limit(10).exec(),
-    ]);
-
-    scoutingReports = scoutingDocs.map((doc) => ({
-      id: doc.id,
-      scoutName: doc.scoutName,
-      date: doc.date?.toISOString() ?? null,
-      rating: doc.rating ?? null,
-      potential: doc.potential ?? null,
-      pros: doc.pros ?? [],
-      cons: doc.cons ?? [],
-      notes: doc.notes ?? null,
-      attributes: doc.attributes ?? null,
-      createdAt: doc.createdAt?.toISOString() ?? null,
-      updatedAt: doc.updatedAt?.toISOString() ?? null,
-    }));
+    const injuryDocs = await Injury.find({ playerId }).sort({ startDate: -1 }).limit(10).exec();
 
     injuries = injuryDocs.map((doc) => ({
       id: doc.id,
@@ -165,7 +146,6 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
           name: transfer.toClub.name,
         },
       })),
-      scoutingReports,
       injuries,
     },
     warnings,
