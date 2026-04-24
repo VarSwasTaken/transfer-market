@@ -17,6 +17,7 @@ type PlayerProfileData = {
   firstName: string;
   lastName: string;
   birthDate: string;
+  shirtNumber: number;
   position: 'GOALKEEPER' | 'DEFENDER' | 'MIDFIELDER' | 'FORWARD';
   preferredFoot: 'LEFT' | 'RIGHT' | 'BOTH';
   height: number | null;
@@ -161,7 +162,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
       <main className="mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8 rounded-xl border border-border/40 bg-card/50 p-6">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <div className="relative flex aspect-[300/390] w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-3xl font-extrabold text-white shadow-lg shadow-emerald-900/30">
+            <div className="relative flex aspect-300/390 w-30 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-emerald-600 to-emerald-800 text-3xl font-extrabold text-white shadow-lg shadow-emerald-900/30">
               {avatarSrc ? (
                 avatarIsExternal ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -177,7 +178,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
             <div className="min-w-0 flex-1">
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-                <span className="rounded border border-emerald-500/20 bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">{position.short}</span>
+                <span className="rounded border border-emerald-500/20 bg-emerald-500/15 px-2 py-1 text-xs font-bold text-emerald-400">#{player.shirtNumber}</span>
               </div>
 
               <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -217,7 +218,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                           <Shield className="h-3.5 w-3.5" />
                         </span>
                       )}
-                      <Link href={`/klub/${player.club.id}`} className="text-base font-bold text-foreground transition-colors hover:text-emerald-400">
+                      <Link href={`/clubs/${player.club.id}`} className="text-base font-bold text-foreground transition-colors hover:text-emerald-400">
                         {player.club.name}
                       </Link>
                     </div>
@@ -296,7 +297,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                                 </span>
                               )}
                               {transfer.fromClub ? (
-                                <Link href={`/klub/${transfer.fromClub.id}`} className="transition-colors hover:text-emerald-400">
+                                <Link href={`/clubs/${transfer.fromClub.id}`} className="transition-colors hover:text-emerald-400">
                                   {transfer.fromClub.name}
                                 </Link>
                               ) : (
@@ -313,7 +314,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                                   <Shield className="h-2.5 w-2.5" />
                                 </span>
                               )}
-                              <Link href={`/klub/${transfer.toClub.id}`} className="transition-colors hover:text-emerald-400">
+                              <Link href={`/clubs/${transfer.toClub.id}`} className="transition-colors hover:text-emerald-400">
                                 {transfer.toClub.name}
                               </Link>
                             </span>

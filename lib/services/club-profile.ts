@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/prisma';
 
 type ClubProfileResult = {
   data: Record<string, unknown> | null;
@@ -26,7 +26,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
           agent: true,
         },
         orderBy: {
-          marketValue: "desc",
+          marketValue: 'desc',
         },
       },
       transfersIn: {
@@ -39,7 +39,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
           fromClub: true,
         },
         orderBy: {
-          date: "desc",
+          date: 'desc',
         },
         take: 10,
       },
@@ -53,7 +53,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
           toClub: true,
         },
         orderBy: {
-          date: "desc",
+          date: 'desc',
         },
         take: 10,
       },
@@ -68,10 +68,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
   }
 
   // Calculate stats
-  const totalMarketValue = club.players.reduce(
-    (sum, player) => sum + (player.marketValue?.toNumber() ?? 0),
-    0
-  );
+  const totalMarketValue = club.players.reduce((sum, player) => sum + (player.marketValue?.toNumber() ?? 0), 0);
   const avgMarketValue = club.players.length > 0 ? totalMarketValue / club.players.length : 0;
 
   return {
@@ -105,6 +102,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
         id: player.id,
         firstName: player.firstName,
         lastName: player.lastName,
+        shirtNumber: player.shirtNumber,
         position: player.position,
         marketValue: decimalToString(player.marketValue),
         nationality: player.nationality
