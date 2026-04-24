@@ -1,7 +1,7 @@
-import { Position, Prisma } from "@prisma/client";
+import { Position, Prisma } from '@prisma/client';
 
-import { prisma } from "@/lib/prisma";
-import { matchesAnyNormalizedField, normalizeForSearch } from "@/lib/search/normalized-search";
+import { prisma } from '@/lib/prisma';
+import { matchesAnyNormalizedField, normalizeForSearch } from '@/lib/search/normalized-search';
 
 const MAX_LIMIT = 100;
 
@@ -13,14 +13,15 @@ type GetPlayersListInput = {
   clubId?: number;
   leagueId?: number;
   nationalityId?: number;
-  sortBy: "marketValue" | "lastName" | "createdAt";
-  sortOrder: "asc" | "desc";
+  sortBy: 'marketValue' | 'lastName' | 'createdAt';
+  sortOrder: 'asc' | 'desc';
 };
 
 type PlayersListItem = {
   id: number;
   firstName: string;
   lastName: string;
+  shirtNumber: number;
   position: Position;
   marketValue: string;
   imageUrl: string | null;
@@ -68,11 +69,7 @@ function matchesSearch(firstName: string, lastName: string, normalizedSearch: st
     return true;
   }
 
-  return matchesAnyNormalizedField(normalizedSearch, [
-    firstName,
-    lastName,
-    `${firstName} ${lastName}`.trim(),
-  ]);
+  return matchesAnyNormalizedField(normalizedSearch, [firstName, lastName, `${firstName} ${lastName}`.trim()]);
 }
 
 function toDecimalString(value: Prisma.Decimal): string {
@@ -102,14 +99,13 @@ export async function getPlayersList(input: GetPlayersListInput): Promise<Player
     andConditions.push({ nationalityId: input.nationalityId });
   }
 
-  const where: Prisma.PlayerWhereInput =
-    andConditions.length > 0 ? { AND: andConditions } : {};
+  const where: Prisma.PlayerWhereInput = andConditions.length > 0 ? { AND: andConditions } : {};
 
   const orderBy: Prisma.PlayerOrderByWithRelationInput = {
     [input.sortBy]: input.sortOrder,
   };
 
-  const normalizedSearch = input.search ? normalizeForSearch(input.search) : "";
+  const normalizedSearch = input.search ? normalizeForSearch(input.search) : '';
 
   let totalItems = 0;
   let players: PlayerListRecord[] = [];
@@ -135,9 +131,7 @@ export async function getPlayersList(input: GetPlayersListInput): Promise<Player
       include: playerListInclude,
     });
 
-    const filteredPlayers = allPlayers.filter((player) =>
-      matchesSearch(player.firstName, player.lastName, normalizedSearch),
-    );
+    const filteredPlayers = allPlayers.filter((player) => matchesSearch(player.firstName, player.lastName, normalizedSearch));
 
     totalItems = filteredPlayers.length;
     players = filteredPlayers.slice(skip, skip + limit);
@@ -150,6 +144,7 @@ export async function getPlayersList(input: GetPlayersListInput): Promise<Player
       id: player.id,
       firstName: player.firstName,
       lastName: player.lastName,
+      shirtNumber: player.shirtNumber,
       position: player.position,
       marketValue: toDecimalString(player.marketValue),
       imageUrl: player.imageUrl,

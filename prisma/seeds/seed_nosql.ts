@@ -1,10 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
 import mongoose from 'mongoose';
 import Injury from '../../models/Injury';
 import TransferRumor from '../../models/TransferRumor';
-import "dotenv/config";
+import 'dotenv/config';
 
 const connectionString = `${process.env.DATABASE_URL}`;
 const pool = new Pool({ connectionString });
@@ -14,37 +14,72 @@ const prisma = new PrismaClient({ adapter });
 async function seedNoSQL() {
   console.log('🍃 Łączenie z MongoDB Atlas...');
   await mongoose.connect(process.env.MONGODB_URI!);
-  
+
   await Injury.deleteMany({});
   await TransferRumor.deleteMany({});
 
   // Lista zawodników, dla których chcemy mieć dane medyczne NoSQL
   const injuriesData = [
-    { 
-      firstName: 'Robert', lastName: 'Lewandowski', 
-      injury: { type: 'Przeciążenie pleców', severity: 'Lekka', days: 7, status: 'Wyleczona' }
+    {
+      firstName: 'Robert',
+      lastName: 'Lewandowski',
+      injury: { type: 'Przeciążenie pleców', severity: 'Lekka', days: 7, status: 'Wyleczona' },
     },
-    { 
-      firstName: 'Lamine', lastName: 'Yamal', 
-      injury: { type: 'Uraz mięśniowy', severity: 'Średnia', days: 14, status: 'Rehabilitacja' }
+    {
+      firstName: 'Lamine',
+      lastName: 'Yamal',
+      injury: { type: 'Uraz mięśniowy', severity: 'Średnia', days: 14, status: 'Rehabilitacja' },
     },
-    { 
-      firstName: 'Erling', lastName: 'Haaland', 
-      injury: { type: 'Uraz stopy', severity: 'Poważna', days: 30, status: 'W trakcie leczenia' }
+    {
+      firstName: 'Erling',
+      lastName: 'Haaland',
+      injury: { type: 'Uraz stopy', severity: 'Poważna', days: 30, status: 'W trakcie leczenia' },
     },
-    { 
-      firstName: 'Kevin', lastName: 'De Bruyne', 
-      injury: { type: 'Zerwanie ścięgna', severity: 'Krytyczna', days: 120, status: 'Wyleczona' }
+    {
+      firstName: 'Kevin',
+      lastName: 'De Bruyne',
+      injury: { type: 'Zerwanie ścięgna', severity: 'Krytyczna', days: 120, status: 'Wyleczona' },
     },
-    { 
-      firstName: 'Pedri', lastName: '', 
-      injury: { type: 'Uraz uda', severity: 'Średnia', days: 21, status: 'W trakcie leczenia' }
-    }
+    {
+      firstName: 'Pedri',
+      lastName: '',
+      injury: { type: 'Uraz uda', severity: 'Średnia', days: 21, status: 'W trakcie leczenia' },
+    },
+    {
+      firstName: 'Bukayo',
+      lastName: 'Saka',
+      injury: { type: 'Naciągnięcie łydki', severity: 'Lekka', days: 10, status: 'Wyleczona' },
+    },
+    {
+      firstName: 'Jude',
+      lastName: 'Bellingham',
+      injury: { type: 'Skręcenie kostki', severity: 'Średnia', days: 18, status: 'Wyleczona' },
+    },
+    {
+      firstName: 'Virgil',
+      lastName: 'van Dijk',
+      injury: { type: 'Stłuczenie kolana', severity: 'Lekka', days: 6, status: 'Wyleczona' },
+    },
+    {
+      firstName: 'Lautaro',
+      lastName: 'Martínez',
+      injury: { type: 'Przeciążenie mięśnia dwugłowego', severity: 'Średnia', days: 12, status: 'Rehabilitacja' },
+    },
+    {
+      firstName: 'Gavi',
+      lastName: '',
+      injury: { type: 'Uraz więzadła pobocznego', severity: 'Poważna', days: 45, status: 'W trakcie leczenia' },
+    },
+    {
+      firstName: 'Kylian',
+      lastName: 'Mbappé',
+      injury: { type: 'Mikrouraz dwugłowego uda', severity: 'Lekka', days: 8, status: 'Wyleczona' },
+    },
   ];
 
   for (const data of injuriesData) {
     const player = await prisma.player.findFirst({
-      where: { firstName: data.firstName, lastName: data.lastName }
+      where: { firstName: data.firstName, lastName: data.lastName },
     });
 
     if (player && data.injury) {
@@ -59,7 +94,7 @@ async function seedNoSQL() {
         severity: data.injury.severity,
         startDate: start,
         status: data.injury.status,
-        description: `Automatyczny raport medyczny: ${data.injury.type}.`
+        description: `Automatyczny raport medyczny: ${data.injury.type}.`,
       });
     }
   }

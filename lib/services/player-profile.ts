@@ -99,6 +99,7 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
       firstName: player.firstName,
       lastName: player.lastName,
       birthDate: player.birthDate.toISOString(),
+      shirtNumber: player.shirtNumber,
       position: player.position,
       preferredFoot: player.preferredFoot,
       height: player.height,

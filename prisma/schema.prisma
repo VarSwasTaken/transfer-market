@@ -32,6 +32,7 @@ enum Position {
 model Nationality {
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  name_PL   String   @unique
   flagUrl   String?
   players   Player[]
   leagues   League[]
@@ -78,6 +79,7 @@ model Player {
   firstName     String
   lastName      String
   birthDate     DateTime
+  shirtNumber   Int
   height        Int?          // w cm
   weight        Int?          // w kg
   position      Position      
@@ -98,6 +100,8 @@ model Player {
   
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
+  @@unique([clubId, shirtNumber], map: "Player_clubId_shirtNumber_key")
 }
 
 model Contract {
