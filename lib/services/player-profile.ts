@@ -1,7 +1,11 @@
-import Injury from "@/models/Injury";
+import Injury from '@/models/Injury';
 
-import { connectToDatabase } from "@/lib/mongoose";
-import { prisma } from "@/lib/prisma";
+import { connectToDatabase } from '@/lib/mongoose';
+import { prisma } from '@/lib/prisma';
+
+const PLAYER_CONTRACTS_LIMIT = 5;
+const PLAYER_TRANSFERS_LIMIT = 20;
+const NOSQL_TIMEOUT_MS = 700;
 
 type PlayerProfileResult = {
   data: Record<string, unknown> | null;
@@ -31,13 +35,15 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
       agent: true,
       contracts: {
         orderBy: {
-          endDate: "desc",
+          endDate: 'desc',
         },
+        take: PLAYER_CONTRACTS_LIMIT,
       },
       transfers: {
         orderBy: {
-          date: "desc",
+          date: 'desc',
         },
+        take: PLAYER_TRANSFERS_LIMIT,
         include: {
           fromClub: true,
           toClub: true,
@@ -46,14 +52,12 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
     },
   });
 
-  let injuries: Array<Record<string, unknown>> = [];
-
-  try {
+  const noSqlTask = (async () => {
     await connectToDatabase();
 
     const injuryDocs = await Injury.find({ playerId }).sort({ startDate: -1 }).limit(10).exec();
 
-    injuries = injuryDocs.map((doc) => ({
+    return injuryDocs.map((doc) => ({
       id: doc.id,
       type: doc.type,
       severity: doc.severity,
@@ -67,9 +71,16 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
       createdAt: doc.createdAt?.toISOString() ?? null,
       updatedAt: doc.updatedAt?.toISOString() ?? null,
     }));
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "MongoDB is temporarily unavailable.";
+  })();
+
+  const noSqlResult = await Promise.race([noSqlTask.then((items) => ({ kind: 'ok' as const, items })), noSqlTask.catch((error) => ({ kind: 'error' as const, error })), new Promise<{ kind: 'timeout' }>((resolve) => setTimeout(() => resolve({ kind: 'timeout' }), NOSQL_TIMEOUT_MS))]);
+
+  const injuries: Array<Record<string, unknown>> = noSqlResult.kind === 'ok' ? noSqlResult.items : [];
+
+  if (noSqlResult.kind === 'timeout') {
+    warnings.push('NoSQL data unavailable: request timed out.');
+  } else if (noSqlResult.kind === 'error') {
+    const message = noSqlResult.error instanceof Error ? noSqlResult.error.message : 'MongoDB is temporarily unavailable.';
     warnings.push(`NoSQL data unavailable: ${message}`);
   }
 
@@ -139,11 +150,13 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
           ? {
               id: transfer.fromClub.id,
               name: transfer.fromClub.name,
+              logoUrl: transfer.fromClub.logoUrl,
             }
           : null,
         toClub: {
           id: transfer.toClub.id,
           name: transfer.toClub.name,
+          logoUrl: transfer.toClub.logoUrl,
         },
       })),
       injuries,
