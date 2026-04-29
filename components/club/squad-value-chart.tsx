@@ -3,6 +3,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Language } from '@/lib/i18n';
 
 const data = [
   { year: '2019', value: 320 },
@@ -14,18 +15,24 @@ const data = [
   { year: '2025', value: 608 },
 ];
 
-export function SquadValueChart() {
+export function SquadValueChart({ language = 'pl' }: { language?: Language }) {
+  const title = language === 'pl' ? 'Historia wartości składu' : 'Squad value history';
+  const subtitle = language === 'pl' ? 'Wartość w milionach EUR' : 'Value in million EUR';
+  const delta = language === 'pl' ? '+8.2% vs zeszły rok' : '+8.2% vs last year';
+  const tooltipSeries = language === 'pl' ? 'Wartość składu' : 'Squad value';
+  const tooltipUnit = language === 'pl' ? 'mln' : 'M';
+
   return (
     <Card className="border-border/40 bg-card/50">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-base font-semibold">Historia wartości składu</CardTitle>
-            <CardDescription className="mt-1 text-xs">Wartość w milionach EUR</CardDescription>
+            <CardTitle className="text-base font-semibold">{title}</CardTitle>
+            <CardDescription className="mt-1 text-xs">{subtitle}</CardDescription>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-emerald-400">608 mln €</p>
-            <p className="mt-0.5 text-xs text-emerald-400">+8.2% vs zeszły rok</p>
+            <p className="mt-0.5 text-xs text-emerald-400">{delta}</p>
           </div>
         </div>
       </CardHeader>
@@ -45,7 +52,7 @@ export function SquadValueChart() {
               }}
               formatter={(v) => {
                 const numericValue = typeof v === 'number' ? v : Number(v ?? 0);
-                return [`${numericValue} mln`, 'Wartość składu'];
+                return [`${numericValue} ${tooltipUnit}`, tooltipSeries];
               }}
             />
             <ReferenceLine y={560} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 4" />

@@ -110,6 +110,7 @@ export async function getPlayerProfile(playerId: number): Promise<PlayerProfileR
         ? {
             id: player.nationality.id,
             name: player.nationality.name,
+            namePL: player.nationality.name_PL,
             flagUrl: player.nationality.flagUrl,
           }
         : null,

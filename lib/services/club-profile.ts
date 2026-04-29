@@ -88,6 +88,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
               ? {
                   id: club.league.nationality.id,
                   name: club.league.nationality.name,
+                  namePL: club.league.nationality.name_PL,
                   flagUrl: club.league.nationality.flagUrl,
                 }
               : null,
@@ -109,6 +110,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
           ? {
               id: player.nationality.id,
               name: player.nationality.name,
+              namePL: player.nationality.name_PL,
               flagUrl: player.nationality.flagUrl,
             }
           : null,
@@ -130,6 +132,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
             ? {
                 id: transfer.player.nationality.id,
                 name: transfer.player.nationality.name,
+                namePL: transfer.player.nationality.name_PL,
                 flagUrl: transfer.player.nationality.flagUrl,
               }
             : null,
@@ -155,6 +158,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
             ? {
                 id: transfer.player.nationality.id,
                 name: transfer.player.nationality.name,
+                namePL: transfer.player.nationality.name_PL,
                 flagUrl: transfer.player.nationality.flagUrl,
               }
             : null,

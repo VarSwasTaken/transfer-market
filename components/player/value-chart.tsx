@@ -2,6 +2,7 @@
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import type { Language } from '@/lib/i18n';
 
 const data = [
   { year: '2019', value: 3 },
@@ -13,18 +14,24 @@ const data = [
   { year: '2025', value: 87 },
 ];
 
-export function ValueChart() {
+export function ValueChart({ language = 'pl' }: { language?: Language }) {
+  const title = language === 'pl' ? 'Historia wyceny rynkowej' : 'Market value history';
+  const subtitle = language === 'pl' ? 'Wartość w milionach EUR' : 'Value in million EUR';
+  const delta = language === 'pl' ? '+24.3% vs zeszły rok' : '+24.3% vs last year';
+  const tooltipSeries = language === 'pl' ? 'Wycena' : 'Valuation';
+  const tooltipUnit = language === 'pl' ? 'mln' : 'M';
+
   return (
     <Card className="bg-card/50 border-border/40">
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-base font-semibold">Historia wyceny rynkowej</CardTitle>
-            <CardDescription className="text-xs mt-1">Wartość w milionach EUR</CardDescription>
+            <CardTitle className="text-base font-semibold">{title}</CardTitle>
+            <CardDescription className="text-xs mt-1">{subtitle}</CardDescription>
           </div>
           <div className="text-right">
             <p className="text-2xl font-bold text-emerald-400">87 mln €</p>
-            <p className="text-xs text-emerald-400 mt-0.5">+24.3% vs zeszły rok</p>
+            <p className="text-xs text-emerald-400 mt-0.5">{delta}</p>
           </div>
         </div>
       </CardHeader>
@@ -44,7 +51,7 @@ export function ValueChart() {
               }}
               formatter={(v) => {
                 const numericValue = typeof v === 'number' ? v : Number(v ?? 0);
-                return [`${numericValue} mln`, 'Wycena'];
+                return [`${numericValue} ${tooltipUnit}`, tooltipSeries];
               }}
             />
             <ReferenceLine y={70} stroke="rgba(255,255,255,0.1)" strokeDasharray="4 4" />

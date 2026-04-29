@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Activity, TrendingUp, TrendingDown, Minus, Shield } from 'lucide-react';
+import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { Navbar } from '@/components/navbar';
@@ -8,6 +9,7 @@ import { Footer } from '@/components/footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ValueChart } from '@/components/player/value-chart';
+import { normalizeLanguage, pickLocalizedName, type Language } from '@/lib/i18n';
 import { getPlayerProfile } from '@/lib/services/player-profile';
 
 type Trend = 'up' | 'down' | 'neutral';
@@ -24,7 +26,7 @@ type PlayerProfileData = {
   weight: number | null;
   marketValue: string | null;
   imageUrl: string | null;
-  nationality: { id: number; name: string; flagUrl: string | null } | null;
+  nationality: { id: number; name: string; namePL?: string | null; flagUrl: string | null } | null;
   club: { id: number; name: string; logoUrl?: string | null } | null;
   agent: { id: number; name: string } | null;
   contracts: Array<{ id: number; endDate: string }>;
@@ -46,42 +48,46 @@ type PlayerProfileData = {
   }>;
 };
 
-const severityConfig = {
-  Lekka: { label: 'Lekka', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-  Średnia: { label: 'Srednia', className: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-  Poważna: { label: 'Poważna', className: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
-  Krytyczna: { label: 'Krytyczna', className: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
-} as const;
+function getSeverityConfig(language: Language) {
+  return {
+    Lekka: { label: language === 'pl' ? 'Lekka' : 'Minor', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+    Średnia: { label: language === 'pl' ? 'Średnia' : 'Moderate', className: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+    Poważna: { label: language === 'pl' ? 'Poważna' : 'Serious', className: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+    Krytyczna: { label: language === 'pl' ? 'Krytyczna' : 'Critical', className: 'bg-rose-500/15 text-rose-400 border-rose-500/20' },
+  } as const;
+}
 
-const typeConfig = {
-  PERMANENT: { label: 'Transfer', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-  LOAN: { label: 'Wypozyczenie', className: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
-  FREE: { label: 'Wolny transfer', className: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
-} as const;
+function getTypeConfig(language: Language) {
+  return {
+    PERMANENT: { label: language === 'pl' ? 'Transfer' : 'Transfer', className: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+    LOAN: { label: language === 'pl' ? 'Wypożyczenie' : 'Loan', className: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+    FREE: { label: language === 'pl' ? 'Wolny transfer' : 'Free transfer', className: 'bg-sky-500/15 text-sky-400 border-sky-500/20' },
+  } as const;
+}
 
-const positionLabel: Record<PlayerProfileData['position'], { full: string; short: string }> = {
-  GOALKEEPER: { full: 'Bramkarz', short: 'BR' },
-  DEFENDER: { full: 'Obronca', short: 'OBR' },
-  MIDFIELDER: { full: 'Pomocnik', short: 'POM' },
-  FORWARD: { full: 'Napastnik', short: 'N' },
+const positionLabel: Record<PlayerProfileData['position'], { full: { pl: string; en: string }; short: string }> = {
+  GOALKEEPER: { full: { pl: 'Bramkarz', en: 'Goalkeeper' }, short: 'GK' },
+  DEFENDER: { full: { pl: 'Obrońca', en: 'Defender' }, short: 'DF' },
+  MIDFIELDER: { full: { pl: 'Pomocnik', en: 'Midfielder' }, short: 'MF' },
+  FORWARD: { full: { pl: 'Napastnik', en: 'Forward' }, short: 'FW' },
 };
 
-const preferredFootLabel: Record<PlayerProfileData['preferredFoot'], string> = {
-  LEFT: 'Lewa',
-  RIGHT: 'Prawa',
-  BOTH: 'Obie',
+const preferredFootLabel: Record<PlayerProfileData['preferredFoot'], { pl: string; en: string }> = {
+  LEFT: { pl: 'Lewa', en: 'Left' },
+  RIGHT: { pl: 'Prawa', en: 'Right' },
+  BOTH: { pl: 'Obie', en: 'Both' },
 };
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('pl-PL', {
+function formatDate(value: string, language: Language) {
+  return new Date(value).toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function formatMonthYear(value: string) {
-  return new Date(value).toLocaleDateString('pl-PL', {
+function formatMonthYear(value: string, language: Language) {
+  return new Date(value).toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-GB', {
     month: 'short',
     year: 'numeric',
   });
@@ -100,9 +106,9 @@ function calculateAge(birthDateIso: string) {
   return age;
 }
 
-function formatMarketValue(raw: string | null) {
+function formatMarketValue(raw: string | null, language: Language) {
   if (!raw) {
-    return 'Brak danych';
+    return language === 'pl' ? 'Brak danych' : 'No data';
   }
 
   const numericValue = Number(raw);
@@ -114,7 +120,7 @@ function formatMarketValue(raw: string | null) {
     return `${Math.round(numericValue / 1_000_000)} mln €`;
   }
 
-  return `${numericValue.toLocaleString('pl-PL')} €`;
+  return `${numericValue.toLocaleString(language === 'pl' ? 'pl-PL' : 'en-GB')} €`;
 }
 
 function getTrend(type: 'PERMANENT' | 'LOAN' | 'FREE', fee: string | null): Trend {
@@ -132,6 +138,56 @@ function TrendIcon({ trend }: { trend: Trend }) {
 }
 
 export default async function PlayerProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const cookieStore = await cookies();
+  const language = normalizeLanguage(cookieStore.get('ui-language')?.value);
+  const t =
+    language === 'pl'
+      ? {
+          noData: 'Brak danych',
+          noClub: 'Bez klubu',
+          marketValue: 'Wartość rynkowa',
+          position: 'Pozycja',
+          preferredFoot: 'Lepsza noga',
+          age: 'Wiek',
+          height: 'Wzrost',
+          weight: 'Waga',
+          currentClub: 'Aktualny klub',
+          nationality: 'Narodowość',
+          agent: 'Agent',
+          born: 'Urodzony',
+          contractUntil: 'Kontrakt do',
+          transferHistory: 'Historia transferów',
+          noTransferHistory: 'Brak historii transferow.',
+          noInjuryHistory: 'Brak historii kontuzji.',
+          injuryHistory: 'Historia kontuzji',
+          noReturnDate: 'Brak daty powrotu',
+          noFromClub: 'Brak klubu',
+          yearsOld: 'lat',
+          loan: 'Wypozyczenie',
+        }
+      : {
+          noData: 'No data',
+          noClub: 'No club',
+          marketValue: 'Market value',
+          position: 'Position',
+          preferredFoot: 'Preferred foot',
+          age: 'Age',
+          height: 'Height',
+          weight: 'Weight',
+          currentClub: 'Current club',
+          nationality: 'Nationality',
+          agent: 'Agent',
+          born: 'Born',
+          contractUntil: 'Contract until',
+          transferHistory: 'Transfer history',
+          noTransferHistory: 'No transfer history.',
+          noInjuryHistory: 'No injury history.',
+          injuryHistory: 'Injury history',
+          noReturnDate: 'No return date',
+          noFromClub: 'No club',
+          yearsOld: 'yrs',
+          loan: 'Loan',
+        };
   const { id } = await params;
   const playerId = Number(id);
 
@@ -150,8 +206,10 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
   const age = calculateAge(player.birthDate);
   const position = positionLabel[player.position];
   const preferredFoot = preferredFootLabel[player.preferredFoot];
-  const marketValue = formatMarketValue(player.marketValue);
-  const contractEnd = player.contracts[0]?.endDate ? formatMonthYear(player.contracts[0].endDate) : 'Brak danych';
+  const severityConfig = getSeverityConfig(language);
+  const typeConfig = getTypeConfig(language);
+  const marketValue = formatMarketValue(player.marketValue, language);
+  const contractEnd = player.contracts[0]?.endDate ? formatMonthYear(player.contracts[0].endDate, language) : t.noData;
   const avatarSrc = player.imageUrl?.trim() || null;
   const avatarIsExternal = avatarSrc ? /^https?:\/\//i.test(avatarSrc) : false;
   const initials = `${player.firstName?.[0] ?? ''}${player.lastName?.[0] ?? ''}`.toUpperCase() || '??';
@@ -183,31 +241,33 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
               <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Wartość rynkowa</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.marketValue}</p>
                   <p className="text-base font-bold text-emerald-400">{marketValue}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Pozycja</p>
-                  <p className="text-base font-bold text-foreground">{position.full}</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.position}</p>
+                  <p className="text-base font-bold text-foreground">{position.full[language]}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Lepsza noga</p>
-                  <p className="text-base font-bold text-foreground">{preferredFoot}</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.preferredFoot}</p>
+                  <p className="text-base font-bold text-foreground">{preferredFoot[language]}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Wiek</p>
-                  <p className="text-base font-bold text-foreground">{age} lat</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.age}</p>
+                  <p className="text-base font-bold text-foreground">
+                    {age} {t.yearsOld}
+                  </p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Wzrost</p>
-                  <p className="text-base font-bold text-foreground">{player.height ? `${player.height} cm` : 'Brak danych'}</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.height}</p>
+                  <p className="text-base font-bold text-foreground">{player.height ? `${player.height} cm` : t.noData}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Waga</p>
-                  <p className="text-base font-bold text-foreground">{player.weight ? `${player.weight} kg` : 'Brak danych'}</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.weight}</p>
+                  <p className="text-base font-bold text-foreground">{player.weight ? `${player.weight} kg` : t.noData}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Aktualny klub</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.currentClub}</p>
                   {player.club ? (
                     <div className="flex items-center gap-2">
                       {player.club.logoUrl ? (
@@ -223,44 +283,44 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                       </Link>
                     </div>
                   ) : (
-                    <p className="text-base font-bold text-foreground">Bez klubu</p>
+                    <p className="text-base font-bold text-foreground">{t.noClub}</p>
                   )}
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Narodowość</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.nationality}</p>
                   {player.nationality ? (
                     <div className="flex items-center gap-2">
                       {player.nationality.flagUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={player.nationality.flagUrl} alt={`${player.nationality.name} flaga`} className="h-4 w-6 shrink-0 rounded-sm object-cover" />
+                        <img src={player.nationality.flagUrl} alt={pickLocalizedName(language, player.nationality)} className="h-4 w-6 shrink-0 rounded-sm object-cover" />
                       ) : null}
-                      <p className="text-base font-bold text-foreground">{player.nationality.name}</p>
+                      <p className="text-base font-bold text-foreground">{pickLocalizedName(language, player.nationality)}</p>
                     </div>
                   ) : (
-                    <p className="text-base font-bold text-foreground">Brak danych</p>
+                    <p className="text-base font-bold text-foreground">{t.noData}</p>
                   )}
                 </div>
               </div>
 
               <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
                 <span className="text-muted-foreground">
-                  Agent:{' '}
+                  {t.agent}:{' '}
                   {player.agent ? (
                     <Link href={`/agent/${player.agent.id}`} className="font-medium text-foreground transition-colors hover:text-emerald-400">
                       {player.agent.name}
                     </Link>
                   ) : (
-                    <span className="font-medium text-foreground">Brak danych</span>
+                    <span className="font-medium text-foreground">{t.noData}</span>
                   )}{' '}
                 </span>
                 <span className="text-muted-foreground">
-                  Urodzony:{' '}
+                  {t.born}:{' '}
                   <span className="font-medium text-foreground">
-                    {formatDate(player.birthDate)} ({age} lat)
+                    {formatDate(player.birthDate, language)} ({age} {t.yearsOld})
                   </span>
                 </span>
                 <span className="text-muted-foreground">
-                  Kontrakt do: <span className="font-medium text-foreground">{contractEnd}</span>
+                  {t.contractUntil}: <span className="font-medium text-foreground">{contractEnd}</span>
                 </span>
               </div>
             </div>
@@ -273,15 +333,15 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <ArrowRight className="h-4 w-4 text-emerald-400" />
-                  Historia transferów
+                  {t.transferHistory}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border/30">
-                  {player.transfers.length === 0 && <div className="px-6 py-4 text-sm text-muted-foreground">Brak historii transferow.</div>}
+                  {player.transfers.length === 0 && <div className="px-6 py-4 text-sm text-muted-foreground">{t.noTransferHistory}</div>}
                   {player.transfers.map((transfer) => {
                     const trend = getTrend(transfer.transferType, transfer.fee);
-                    const feeLabel = transfer.transferType === 'FREE' ? '0M €' : transfer.transferType === 'LOAN' ? 'Wypozyczenie' : formatMarketValue(transfer.fee);
+                    const feeLabel = transfer.transferType === 'FREE' ? '0M €' : transfer.transferType === 'LOAN' ? t.loan : formatMarketValue(transfer.fee, language);
 
                     return (
                       <div key={transfer.id} className="flex items-center gap-4 px-6 py-3.5">
@@ -301,7 +361,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                                   {transfer.fromClub.name}
                                 </Link>
                               ) : (
-                                'Brak klubu'
+                                t.noFromClub
                               )}
                             </span>
                             <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -323,7 +383,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
                             <Badge variant="outline" className={`px-1.5 py-0 text-[10px] ${typeConfig[transfer.transferType].className}`}>
                               {typeConfig[transfer.transferType].label}
                             </Badge>
-                            <span className="text-xs text-muted-foreground">{formatMonthYear(transfer.date)}</span>
+                            <span className="text-xs text-muted-foreground">{formatMonthYear(transfer.date, language)}</span>
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
@@ -341,18 +401,18 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Activity className="h-4 w-4 text-rose-400" />
-                  Historia kontuzji
+                  {t.injuryHistory}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border/30">
-                  {player.injuries.length === 0 && <div className="px-6 py-4 text-sm text-muted-foreground">Brak historii kontuzji.</div>}
+                  {player.injuries.length === 0 && <div className="px-6 py-4 text-sm text-muted-foreground">{t.noInjuryHistory}</div>}
                   {player.injuries.map((injury) => (
                     <div key={injury.id} className="flex items-center gap-4 px-6 py-3.5">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground">{injury.type}</p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          {formatDate(injury.startDate)} &ndash; {injury.actualReturnDate ? formatDate(injury.actualReturnDate) : injury.expectedReturnDate ? formatDate(injury.expectedReturnDate) : 'Brak daty powrotu'}
+                          {formatDate(injury.startDate, language)} &ndash; {injury.actualReturnDate ? formatDate(injury.actualReturnDate, language) : injury.expectedReturnDate ? formatDate(injury.expectedReturnDate, language) : t.noReturnDate}
                         </p>
                       </div>
                       <Badge variant="outline" className={`shrink-0 px-1.5 py-0 text-[10px] ${severityConfig[injury.severity].className}`}>
@@ -367,7 +427,7 @@ export default async function PlayerProfilePage({ params }: { params: Promise<{ 
 
           <div className="flex flex-col gap-6">
             {/* Historyczny wykres wartosci pozostaje hardcoded, bo nie przechowujemy jeszcze historii. */}
-            <ValueChart />
+            <ValueChart language={language} />
           </div>
         </div>
       </main>

@@ -2,12 +2,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Users, TrendingUp, Activity, Flame, Shield } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 import { Navbar } from '@/components/navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SquadValueChart } from '@/components/club/squad-value-chart';
 import { getClubProfile } from '@/lib/services/club-profile';
+import { normalizeLanguage, pickLocalizedName, type Language } from '@/lib/i18n';
 
 type ClubProfileData = {
   id: number;
@@ -21,6 +23,7 @@ type ClubProfileData = {
     nationality: {
       id: number;
       name: string;
+      namePL?: string | null;
       flagUrl: string | null;
     } | null;
   } | null;
@@ -39,6 +42,7 @@ type ClubProfileData = {
     nationality: {
       id: number;
       name: string;
+      namePL?: string | null;
       flagUrl: string | null;
     } | null;
   }>;
@@ -51,6 +55,7 @@ type ClubProfileData = {
       nationality: {
         id: number;
         name: string;
+        namePL?: string | null;
         flagUrl: string | null;
       } | null;
     };
@@ -72,6 +77,7 @@ type ClubProfileData = {
       nationality: {
         id: number;
         name: string;
+        namePL?: string | null;
         flagUrl: string | null;
       } | null;
     };
@@ -93,26 +99,32 @@ const positionLabel: Record<ClubProfileData['players'][number]['position'], stri
   FORWARD: 'N',
 };
 
-const groupedPositionConfig: Array<{
-  key: ClubProfileData['players'][number]['position'];
-  title: string;
-}> = [
-  { key: 'GOALKEEPER', title: 'Bramkarze' },
-  { key: 'DEFENDER', title: 'Obrońcy' },
-  { key: 'MIDFIELDER', title: 'Pomocnicy' },
-  { key: 'FORWARD', title: 'Napastnicy' },
-];
+function getGroupedPositionConfig(language: Language): Array<{ key: ClubProfileData['players'][number]['position']; title: string }> {
+  return language === 'pl'
+    ? [
+        { key: 'GOALKEEPER', title: 'Bramkarze' },
+        { key: 'DEFENDER', title: 'Obrońcy' },
+        { key: 'MIDFIELDER', title: 'Pomocnicy' },
+        { key: 'FORWARD', title: 'Napastnicy' },
+      ]
+    : [
+        { key: 'GOALKEEPER', title: 'Goalkeepers' },
+        { key: 'DEFENDER', title: 'Defenders' },
+        { key: 'MIDFIELDER', title: 'Midfielders' },
+        { key: 'FORWARD', title: 'Forwards' },
+      ];
+}
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString('pl-PL', {
+function formatDate(value: string, language: Language) {
+  return new Date(value).toLocaleDateString(language === 'pl' ? 'pl-PL' : 'en-GB', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function formatMoney(raw: string | null) {
-  if (!raw) return 'Brak danych';
+function formatMoney(raw: string | null, language: Language) {
+  if (!raw) return language === 'pl' ? 'Brak danych' : 'No data';
 
   const value = Number(raw);
   if (Number.isNaN(value)) return raw;
@@ -120,13 +132,71 @@ function formatMoney(raw: string | null) {
   if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)} mld €`;
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)} mln €`;
 
-  return `${value.toLocaleString('pl-PL')} €`;
+  return `${value.toLocaleString(language === 'pl' ? 'pl-PL' : 'en-GB')} €`;
 }
 
 export default async function ClubProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const clubId = Number(id);
 
+  const cookieStore = await cookies();
+  const language = normalizeLanguage(cookieStore.get('ui-language')?.value);
+  const t =
+    language === 'pl'
+      ? {
+          noCountry: 'Brak kraju',
+          noLeague: 'Brak ligi',
+          noData: 'Brak danych',
+          noNationality: 'Brak narodowości',
+          noClub: 'Bez klubu',
+          squadValue: 'Wartość składu',
+          budget: 'Budżet transferowy',
+          country: 'Państwo',
+          league: 'Liga',
+          founded: 'Rok założenia',
+          stadium: 'Stadion',
+          playersInClub: 'Brak zawodników w klubie.',
+          playersNone: 'Brak zawodników.',
+          transferHistoryNone: 'Brak historii transferow.',
+          incoming: 'Przybycie',
+          outgoing: 'Odejscie',
+          rumoursMissing: 'Brak danych o plotkach transferowych dla klubu w obecnym modelu bazy.',
+          injuriesMissing: 'Brak danych o kontuzjach klubowych w obecnym modelu bazy.',
+          squadStats: 'Statystyki składu',
+          playersCount: 'Liczba zawodników',
+          averagePlayerValue: 'Średnia wartość zawodnika',
+          squadPlayers: 'Skład zawodników',
+          transfers: 'Transfery',
+          rumours: 'Plotki transferowe',
+          injuries: 'Kontuzjowani zawodnicy',
+        }
+      : {
+          noCountry: 'No country',
+          noLeague: 'No league',
+          noData: 'No data',
+          noNationality: 'No nationality',
+          noClub: 'No club',
+          squadValue: 'Squad value',
+          budget: 'Transfer budget',
+          country: 'Country',
+          league: 'League',
+          founded: 'Founded',
+          stadium: 'Stadium',
+          playersInClub: 'No players in this club.',
+          playersNone: 'No players.',
+          transferHistoryNone: 'No transfer history.',
+          incoming: 'Arrival',
+          outgoing: 'Departure',
+          rumoursMissing: 'No transfer rumours data for this club in the current database model.',
+          injuriesMissing: 'No club injury data in the current database model.',
+          squadStats: 'Squad stats',
+          playersCount: 'Player count',
+          averagePlayerValue: 'Average player value',
+          squadPlayers: 'Squad',
+          transfers: 'Transfers',
+          rumours: 'Transfer rumours',
+          injuries: 'Injured players',
+        };
   if (!Number.isInteger(clubId) || clubId <= 0) {
     notFound();
   }
@@ -175,7 +245,7 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
   const leagueLogoSrc = club.league?.logoUrl?.trim() || null;
   const nationalityFlagSrc = club.league?.nationality?.flagUrl?.trim() || null;
 
-  const playersByPosition = groupedPositionConfig.map((section) => ({
+  const playersByPosition = getGroupedPositionConfig(language).map((section) => ({
     ...section,
     players: club.players.filter((player) => player.position === section.key).sort((a, b) => a.shirtNumber - b.shirtNumber || a.lastName.localeCompare(b.lastName)),
   }));
@@ -211,7 +281,7 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                   ) : (
                     <Shield className="mr-1 h-3.5 w-3.5" />
                   )}
-                  {club.league?.nationality?.name ?? 'Brak kraju'}
+                  {pickLocalizedName(language, club.league?.nationality) || t.noCountry}
                 </Badge>
                 <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-xs text-emerald-300">
                   {club.league ? (
@@ -227,7 +297,7 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                   ) : (
                     <>
                       <Shield className="mr-1 h-3.5 w-3.5" />
-                      Brak ligi
+                      {t.noLeague}
                     </>
                   )}
                 </Badge>
@@ -239,13 +309,13 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                     {club.league.name}
                   </Link>
                 ) : (
-                  'Brak ligi'
+                  t.noLeague
                 )}
               </p>
 
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Liga</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.league}</p>
                   <p className="flex items-center text-base font-bold text-foreground">
                     {leagueLogoSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -253,11 +323,11 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                     ) : (
                       <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
                     )}
-                    {club.league?.name ?? 'Brak danych'}
+                    {club.league?.name ?? t.noData}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Państwo</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.country}</p>
                   <p className="flex items-center text-base font-bold text-foreground">
                     {nationalityFlagSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -265,24 +335,24 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                     ) : (
                       <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
                     )}
-                    {club.league?.nationality?.name ?? 'Brak danych'}
+                    {pickLocalizedName(language, club.league?.nationality) || t.noData}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Budżet transferowy</p>
-                  <p className="text-base font-bold text-amber-400">{formatMoney(club.budget)}</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.budget}</p>
+                  <p className="text-base font-bold text-amber-400">{formatMoney(club.budget, language)}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Wartość składu</p>
-                  <p className="text-base font-bold text-emerald-400">{formatMoney(club.stats.totalMarketValue)}</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.squadValue}</p>
+                  <p className="text-base font-bold text-emerald-400">{formatMoney(club.stats.totalMarketValue, language)}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Rok założenia</p>
-                  <p className="text-base font-bold text-foreground">Brak danych</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.founded}</p>
+                  <p className="text-base font-bold text-foreground">{t.noData}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">Stadion</p>
-                  <p className="text-base font-bold text-foreground">Brak danych</p>
+                  <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.stadium}</p>
+                  <p className="text-base font-bold text-foreground">{t.noData}</p>
                 </div>
               </div>
             </div>
@@ -295,17 +365,17 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Users className="h-4 w-4 text-emerald-400" />
-                  Skład zawodników
+                  {t.squadPlayers}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="space-y-4 px-4 pb-4">
-                  {club.players.length === 0 && <div className="px-2 py-2 text-sm text-muted-foreground">Brak zawodników w klubie.</div>}
+                  {club.players.length === 0 && <div className="px-2 py-2 text-sm text-muted-foreground">{t.playersInClub}</div>}
                   {playersByPosition.map((section) => (
                     <div key={section.key} className="overflow-hidden rounded-lg border border-border/30 bg-background/50">
                       <div className="border-b border-border/30 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</div>
                       {section.players.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-muted-foreground">Brak zawodników.</div>
+                        <div className="px-4 py-3 text-sm text-muted-foreground">{t.playersNone}</div>
                       ) : (
                         <div className="divide-y divide-border/30">
                           {section.players.map((player) => {
@@ -333,11 +403,11 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                                     ) : (
                                       <Shield className="h-3.5 w-3.5" />
                                     )}
-                                    <span>{player.nationality?.name ?? 'Brak narodowości'}</span>
+                                    <span>{pickLocalizedName(language, player.nationality) || t.noNationality}</span>
                                   </div>
                                 </div>
                                 <div className="flex shrink-0 items-center gap-2">
-                                  <span className="text-sm font-semibold text-emerald-400">{formatMoney(player.marketValue)}</span>
+                                  <span className="text-sm font-semibold text-emerald-400">{formatMoney(player.marketValue, language)}</span>
                                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-emerald-400" />
                                 </div>
                               </Link>
@@ -355,16 +425,16 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <ArrowRight className="h-4 w-4 text-emerald-400" />
-                  Transfery
+                  {t.transfers}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="divide-y divide-border/30">
-                  {transfers.length === 0 && <div className="px-6 py-4 text-sm text-muted-foreground">Brak historii transferow.</div>}
+                  {transfers.length === 0 && <div className="px-6 py-4 text-sm text-muted-foreground">{t.transferHistoryNone}</div>}
                   {transfers.map((transfer) => (
                     <div key={transfer.id} className="flex items-center gap-4 px-6 py-3.5">
                       <Badge variant="outline" className={`shrink-0 px-1.5 py-0 text-[10px] ${transfer.direction === 'in' ? 'border-emerald-500/20 bg-emerald-500/15 text-emerald-400' : 'border-rose-500/20 bg-rose-500/15 text-rose-400'}`}>
-                        {transfer.direction === 'in' ? 'Przybycie' : 'Odejscie'}
+                        {transfer.direction === 'in' ? t.incoming : t.outgoing}
                       </Badge>
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -391,7 +461,7 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                                 {transfer.fromClub.name}
                               </Link>
                             ) : (
-                              <span className="max-w-40 truncate">Bez klubu</span>
+                              <span className="max-w-40 truncate">{t.noClub}</span>
                             )}
                           </span>
                           <ArrowRight className="h-3 w-3 shrink-0" />
@@ -406,10 +476,10 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
                               {transfer.toClub.name}
                             </Link>
                           </span>
-                          <span>&middot; {formatDate(transfer.date)}</span>
+                          <span>&middot; {formatDate(transfer.date, language)}</span>
                         </div>
                       </div>
-                      <span className="shrink-0 text-sm font-semibold text-foreground">{formatMoney(transfer.fee)}</span>
+                      <span className="shrink-0 text-sm font-semibold text-foreground">{formatMoney(transfer.fee, language)}</span>
                     </div>
                   ))}
                 </div>
@@ -420,45 +490,45 @@ export default async function ClubProfilePage({ params }: { params: Promise<{ id
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Flame className="h-4 w-4 text-orange-400" />
-                  Plotki transferowe
+                  {t.rumours}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-6 py-4 text-sm text-muted-foreground">Brak danych o plotkach transferowych dla klubu w obecnym modelu bazy.</CardContent>
+              <CardContent className="px-6 py-4 text-sm text-muted-foreground">{t.rumoursMissing}</CardContent>
             </Card>
 
             <Card className="border-border/40 bg-card/50">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Activity className="h-4 w-4 text-rose-400" />
-                  Kontuzjowani zawodnicy
+                  {t.injuries}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-6 py-4 text-sm text-muted-foreground">Brak danych o kontuzjach klubowych w obecnym modelu bazy.</CardContent>
+              <CardContent className="px-6 py-4 text-sm text-muted-foreground">{t.injuriesMissing}</CardContent>
             </Card>
           </div>
 
           <div className="flex flex-col gap-6">
-            <SquadValueChart />
+            <SquadValueChart language={language} />
 
             <Card className="border-border/40 bg-card/50">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <TrendingUp className="h-4 w-4 text-emerald-400" />
-                  Statystyki składu
+                  {t.squadStats}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Liczba zawodników</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t.playersCount}</p>
                   <p className="text-base font-bold text-foreground">{club.stats.playerCount}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Średnia wartość zawodnika</p>
-                  <p className="text-base font-bold text-foreground">{formatMoney(club.stats.avgMarketValue)}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t.averagePlayerValue}</p>
+                  <p className="text-base font-bold text-foreground">{formatMoney(club.stats.avgMarketValue, language)}</p>
                 </div>
                 <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wartość składu</p>
-                  <p className="text-base font-bold text-emerald-400">{formatMoney(club.stats.totalMarketValue)}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{t.squadValue}</p>
+                  <p className="text-base font-bold text-emerald-400">{formatMoney(club.stats.totalMarketValue, language)}</p>
                 </div>
               </CardContent>
             </Card>
