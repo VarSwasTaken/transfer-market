@@ -1,7 +1,9 @@
-import mongoose, { Schema, model, models, Document } from 'mongoose';
+import { Schema, model, models, Document } from 'mongoose';
 
 export interface IPlayerValuation extends Document {
   playerId: number;
+  playerFirstName?: string;
+  playerLastName?: string;
   year: number;
   month: number;
   value: number;
@@ -13,6 +15,8 @@ export interface IPlayerValuation extends Document {
 const PlayerValuationSchema = new Schema(
   {
     playerId: { type: Number, required: true },
+    playerFirstName: { type: String },
+    playerLastName: { type: String },
     year: { type: Number, required: true, min: 1900 },
     month: { type: Number, required: true, min: 1, max: 12 },
     value: { type: Number, required: true, min: 0 },

@@ -1,12 +1,12 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-import Injury from "@/models/Injury";
+import Injury from '@/models/Injury';
 
-import { connectToDatabase } from "@/lib/mongoose";
-import { prisma } from "@/lib/prisma";
+import { connectToDatabase } from '@/lib/mongoose';
+import { prisma } from '@/lib/prisma';
 
-const VALID_SEVERITIES = ["Lekka", "Średnia", "Poważna", "Krytyczna"] as const;
-const VALID_STATUSES = ["W trakcie leczenia", "Rehabilitacja", "Wyleczona"] as const;
+const VALID_SEVERITIES = ['Lekka', 'Średnia', 'Poważna', 'Krytyczna'] as const;
+const VALID_STATUSES = ['W trakcie leczenia', 'Rehabilitacja', 'Wyleczona'] as const;
 
 type InjurySeverity = (typeof VALID_SEVERITIES)[number];
 type InjuryStatus = (typeof VALID_STATUSES)[number];
@@ -14,6 +14,8 @@ type InjuryStatus = (typeof VALID_STATUSES)[number];
 export type InjuryDto = {
   id: string;
   playerId: number;
+  playerFirstName: string | null;
+  playerLastName: string | null;
   type: string;
   severity: InjurySeverity;
   startDate: string;
@@ -36,6 +38,8 @@ export type ListInjuriesParams = {
 
 export type CreateInjuryInput = {
   playerId: number;
+  playerFirstName?: string;
+  playerLastName?: string;
   type: string;
   severity: InjurySeverity;
   startDate: string;
@@ -56,7 +60,7 @@ function toDateOrNull(value: string | null | undefined): Date | null {
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error("Invalid date value.");
+    throw new Error('Invalid date value.');
   }
 
   return parsed;
@@ -64,20 +68,20 @@ function toDateOrNull(value: string | null | undefined): Date | null {
 
 function assertValidObjectId(id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid injury id.");
+    throw new Error('Invalid injury id.');
   }
 }
 
 function assertSeverity(value: unknown): InjurySeverity {
-  if (typeof value !== "string" || !VALID_SEVERITIES.includes(value as InjurySeverity)) {
-    throw new Error("Invalid injury severity.");
+  if (typeof value !== 'string' || !VALID_SEVERITIES.includes(value as InjurySeverity)) {
+    throw new Error('Invalid injury severity.');
   }
   return value as InjurySeverity;
 }
 
 function assertStatus(value: unknown): InjuryStatus {
-  if (typeof value !== "string" || !VALID_STATUSES.includes(value as InjuryStatus)) {
-    throw new Error("Invalid injury status.");
+  if (typeof value !== 'string' || !VALID_STATUSES.includes(value as InjuryStatus)) {
+    throw new Error('Invalid injury status.');
   }
   return value as InjuryStatus;
 }
@@ -89,28 +93,16 @@ async function assertPlayerExists(playerId: number) {
   });
 
   if (!player) {
-    throw new Error("Player not found.");
+    throw new Error('Player not found.');
   }
 }
 
-function mapInjury(doc: {
-  id: string;
-  playerId: number;
-  type: string;
-  severity: InjurySeverity;
-  startDate: Date;
-  expectedReturnDate?: Date | null;
-  actualReturnDate?: Date | null;
-  status: InjuryStatus;
-  description?: string | null;
-  treatment?: string | null;
-  reportedBy?: string | null;
-  createdAt?: Date;
-  updatedAt?: Date;
-}): InjuryDto {
+function mapInjury(doc: { id: string; playerId: number; playerFirstName?: string | null; playerLastName?: string | null; type: string; severity: InjurySeverity; startDate: Date; expectedReturnDate?: Date | null; actualReturnDate?: Date | null; status: InjuryStatus; description?: string | null; treatment?: string | null; reportedBy?: string | null; createdAt?: Date; updatedAt?: Date }): InjuryDto {
   return {
     id: doc.id,
     playerId: doc.playerId,
+    playerFirstName: doc.playerFirstName ?? null,
+    playerLastName: doc.playerLastName ?? null,
     type: doc.type,
     severity: doc.severity,
     startDate: doc.startDate.toISOString(),
@@ -138,14 +130,7 @@ export async function listInjuries(params: ListInjuriesParams) {
 
   const skip = (params.page - 1) * params.limit;
 
-  const [items, total] = await Promise.all([
-    Injury.find(filter)
-      .sort({ startDate: -1, _id: -1 })
-      .skip(skip)
-      .limit(params.limit)
-      .exec(),
-    Injury.countDocuments(filter),
-  ]);
+  const [items, total] = await Promise.all([Injury.find(filter).sort({ startDate: -1, _id: -1 }).skip(skip).limit(params.limit).exec(), Injury.countDocuments(filter)]);
 
   return {
     items: items.map((item) => mapInjury(item)),
@@ -167,18 +152,18 @@ export async function getInjuryById(id: string) {
 
 export async function createInjury(input: CreateInjuryInput) {
   if (!Number.isInteger(input.playerId) || input.playerId <= 0) {
-    throw new Error("Invalid player id.");
+    throw new Error('Invalid player id.');
   }
-  if (typeof input.type !== "string" || input.type.trim().length === 0) {
-    throw new Error("Injury type is required.");
+  if (typeof input.type !== 'string' || input.type.trim().length === 0) {
+    throw new Error('Injury type is required.');
   }
 
   const severity = assertSeverity(input.severity);
-  const status = input.status ? assertStatus(input.status) : "W trakcie leczenia";
+  const status = input.status ? assertStatus(input.status) : 'W trakcie leczenia';
   const startDate = toDateOrNull(input.startDate);
 
   if (!startDate) {
-    throw new Error("Injury startDate is required.");
+    throw new Error('Injury startDate is required.');
   }
 
   const expectedReturnDate = toDateOrNull(input.expectedReturnDate);
@@ -210,15 +195,15 @@ export async function updateInjury(id: string, input: UpdateInjuryInput) {
 
   if (input.playerId !== undefined) {
     if (!Number.isInteger(input.playerId) || input.playerId <= 0) {
-      throw new Error("Invalid player id.");
+      throw new Error('Invalid player id.');
     }
     await assertPlayerExists(input.playerId);
     payload.playerId = input.playerId;
   }
 
   if (input.type !== undefined) {
-    if (typeof input.type !== "string" || input.type.trim().length === 0) {
-      throw new Error("Injury type cannot be empty.");
+    if (typeof input.type !== 'string' || input.type.trim().length === 0) {
+      throw new Error('Injury type cannot be empty.');
     }
     payload.type = input.type.trim();
   }
@@ -234,7 +219,7 @@ export async function updateInjury(id: string, input: UpdateInjuryInput) {
   if (input.startDate !== undefined) {
     const parsedStartDate = toDateOrNull(input.startDate);
     if (!parsedStartDate) {
-      throw new Error("Injury startDate cannot be null.");
+      throw new Error('Injury startDate cannot be null.');
     }
     payload.startDate = parsedStartDate;
   }

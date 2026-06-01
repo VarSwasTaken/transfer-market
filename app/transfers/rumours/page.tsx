@@ -166,14 +166,16 @@ export default async function TransferRumoursPage({ searchParams }: PageParams) 
                     const player = playerById.get(rumor.playerId);
                     const fromClub = rumor.fromClubId ? clubById.get(rumor.fromClubId) : null;
                     const toClub = rumor.toClubId ? clubById.get(rumor.toClubId) : null;
+                    const storedPlayerName = `${rumor.playerFirstName ?? ''} ${rumor.playerLastName ?? ''}`.trim();
+                    const playerName = player ? `${player.firstName} ${player.lastName}`.trim() : storedPlayerName || `Zawodnik #${rumor.playerId}`;
 
                     return (
                       <tr key={rumor.id} className="hover:bg-emerald-500/5 transition-colors">
                         <td className="px-4 py-3">
                           <Link href={`/players/${rumor.playerId}`} className="flex items-center gap-2 group">
-                            <PlayerAvatar name={player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${rumor.playerId}`} firstName={player?.firstName} lastName={player?.lastName} imageUrl={player?.imageUrl} tone="orange" className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg" imageClassName="h-full w-full object-cover object-center" />
+                            <PlayerAvatar name={playerName} firstName={player?.firstName ?? rumor.playerFirstName ?? undefined} lastName={player?.lastName ?? rumor.playerLastName ?? undefined} imageUrl={player?.imageUrl} tone="orange" className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg" imageClassName="h-full w-full object-cover object-center" />
                             <div className="min-w-0">
-                              <div className="text-sm font-semibold text-foreground group-hover:text-emerald-400 transition-colors truncate">{player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${rumor.playerId}`}</div>
+                              <div className="text-sm font-semibold text-foreground group-hover:text-emerald-400 transition-colors truncate">{playerName}</div>
                               <div className="text-xs text-muted-foreground">{player?.position ?? 'N/A'}</div>
                             </div>
                           </Link>

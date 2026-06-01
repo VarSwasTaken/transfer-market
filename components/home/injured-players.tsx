@@ -56,13 +56,15 @@ export async function InjuredPlayers() {
             const player = playerMap.get(p.playerId);
             const config = severityConfig[p.severity as keyof typeof severityConfig] || severityConfig['Średnia'];
             const returnDate = p.expectedReturnDate ? new Date(p.expectedReturnDate).toLocaleDateString('pl-PL') : 'N/A';
+            const storedPlayerName = `${p.playerFirstName ?? ''} ${p.playerLastName ?? ''}`.trim();
+            const playerName = player ? `${player.firstName} ${player.lastName}`.trim() : storedPlayerName || `Zawodnik #${p.playerId}`;
 
             return (
               <Link key={p.id} href={`/players/${p.playerId}`} className="flex items-center gap-3 px-6 py-3 hover:bg-muted/30 transition-colors group">
-                <PlayerAvatar firstName={player?.firstName} lastName={player?.lastName} name={player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${p.playerId}`} imageUrl={player?.imageUrl} className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover" />
+                <PlayerAvatar firstName={player?.firstName ?? p.playerFirstName ?? undefined} lastName={player?.lastName ?? p.playerLastName ?? undefined} name={playerName} imageUrl={player?.imageUrl} className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-foreground group-hover:text-emerald-400 transition-colors truncate">{player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${p.playerId}`}</span>
+                    <span className="text-sm font-medium text-foreground group-hover:text-emerald-400 transition-colors truncate">{playerName}</span>
                     <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{player ? getPlayerPositionAbbreviation(player.position) : 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">

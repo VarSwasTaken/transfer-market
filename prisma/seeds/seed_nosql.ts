@@ -110,6 +110,8 @@ async function seedNoSQL() {
 
       await Injury.create({
         playerId: player.id,
+        playerFirstName: player.firstName,
+        playerLastName: player.lastName,
         type_PL: injuryTypeData.pl,
         type_EN: injuryTypeData.en,
         severity: data.injury.severity,
@@ -249,6 +251,8 @@ async function seedNoSQL() {
 
     await TransferRumor.create({
       playerId: player.id,
+      playerFirstName: player.firstName,
+      playerLastName: player.lastName,
       fromClubId: player.clubId ?? null,
       toClubId,
       source: data.rumor.source,
@@ -319,12 +323,14 @@ async function seedNoSQL() {
       try {
         await PlayerValuation.create({
           playerId: player.id,
+          playerFirstName: player.firstName,
+          playerLastName: player.lastName,
           year: val.year,
           month: val.month,
           value: val.value,
           currency: 'EUR',
         });
-      } catch (e) {
+      } catch {
         // ignorujemy duplikaty lub błędy podczas seedowania
       }
     }
@@ -376,7 +382,7 @@ async function seedNoSQL() {
           value,
           currency: 'EUR',
         });
-      } catch (e) {
+      } catch {
         // ignorujemy duplikaty
       }
     }

@@ -2,6 +2,8 @@ import { Schema, model, models, Document } from 'mongoose';
 
 export interface ITransferRumor extends Document {
   playerId: number;
+  playerFirstName?: string;
+  playerLastName?: string;
   fromClubId?: number;
   toClubId?: number;
   source: string;
@@ -25,6 +27,8 @@ export interface ITransferRumor extends Document {
 const TransferRumorSchema = new Schema(
   {
     playerId: { type: Number, required: true },
+    playerFirstName: { type: String },
+    playerLastName: { type: String },
     fromClubId: { type: Number },
     toClubId: { type: Number },
 

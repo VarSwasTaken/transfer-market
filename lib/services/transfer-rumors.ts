@@ -1,13 +1,13 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-import TransferRumor from "@/models/TransferRumor";
+import TransferRumor from '@/models/TransferRumor';
 
-import { connectToDatabase } from "@/lib/mongoose";
-import { prisma } from "@/lib/prisma";
+import { connectToDatabase } from '@/lib/mongoose';
+import { prisma } from '@/lib/prisma';
 
-const VALID_CREDIBILITY = ["Low", "Medium", "High"] as const;
-const VALID_STATUS = ["Active", "Confirmed", "Denied", "Expired"] as const;
-const VALID_RUMOR_TYPES = ["Transfer", "Loan", "Swap"] as const;
+const VALID_CREDIBILITY = ['Low', 'Medium', 'High'] as const;
+const VALID_STATUS = ['Active', 'Confirmed', 'Denied', 'Expired'] as const;
+const VALID_RUMOR_TYPES = ['Transfer', 'Loan', 'Swap'] as const;
 
 type RumorCredibility = (typeof VALID_CREDIBILITY)[number];
 type RumorStatus = (typeof VALID_STATUS)[number];
@@ -16,6 +16,8 @@ type RumorType = (typeof VALID_RUMOR_TYPES)[number];
 export type TransferRumorDto = {
   id: string;
   playerId: number;
+  playerFirstName: string | null;
+  playerLastName: string | null;
   fromClubId: number | null;
   toClubId: number | null;
   source: string;
@@ -49,6 +51,8 @@ export type ListTransferRumorsParams = {
 
 export type CreateTransferRumorInput = {
   playerId: number;
+  playerFirstName?: string;
+  playerLastName?: string;
   fromClubId?: number | null;
   toClubId?: number | null;
   source: string;
@@ -70,7 +74,7 @@ export type UpdateTransferRumorInput = Partial<CreateTransferRumorInput>;
 
 function assertValidObjectId(id: string) {
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new Error("Invalid transfer rumor id.");
+    throw new Error('Invalid transfer rumor id.');
   }
 }
 
@@ -82,22 +86,22 @@ function assertPositiveInt(value: unknown, fieldName: string): number {
 }
 
 function assertNonNegativeNumber(value: unknown, fieldName: string): number {
-  if (typeof value !== "number" || value < 0) {
+  if (typeof value !== 'number' || value < 0) {
     throw new Error(`${fieldName} must be a non-negative number.`);
   }
   return value;
 }
 
 function assertCredibility(value: unknown): RumorCredibility {
-  if (typeof value !== "string" || !VALID_CREDIBILITY.includes(value as RumorCredibility)) {
-    throw new Error("Invalid rumor credibility.");
+  if (typeof value !== 'string' || !VALID_CREDIBILITY.includes(value as RumorCredibility)) {
+    throw new Error('Invalid rumor credibility.');
   }
   return value as RumorCredibility;
 }
 
 function assertStatus(value: unknown): RumorStatus {
-  if (typeof value !== "string" || !VALID_STATUS.includes(value as RumorStatus)) {
-    throw new Error("Invalid rumor status.");
+  if (typeof value !== 'string' || !VALID_STATUS.includes(value as RumorStatus)) {
+    throw new Error('Invalid rumor status.');
   }
   return value as RumorStatus;
 }
@@ -107,16 +111,16 @@ function isStatusTransitionAllowed(current: RumorStatus, next: RumorStatus): boo
     return true;
   }
 
-  if (current === "Active") {
-    return next === "Confirmed" || next === "Denied" || next === "Expired";
+  if (current === 'Active') {
+    return next === 'Confirmed' || next === 'Denied' || next === 'Expired';
   }
 
   return false;
 }
 
 function assertRumorType(value: unknown): RumorType {
-  if (typeof value !== "string" || !VALID_RUMOR_TYPES.includes(value as RumorType)) {
-    throw new Error("Invalid rumor type.");
+  if (typeof value !== 'string' || !VALID_RUMOR_TYPES.includes(value as RumorType)) {
+    throw new Error('Invalid rumor type.');
   }
   return value as RumorType;
 }
@@ -141,21 +145,21 @@ function toDateOrNow(value: string | undefined, fieldName: string): Date {
 
 function normalizeLinks(value: unknown): string[] {
   if (!Array.isArray(value)) {
-    throw new Error("links must be an array of strings.");
+    throw new Error('links must be an array of strings.');
   }
 
   return value
-    .filter((item): item is string => typeof item === "string")
+    .filter((item): item is string => typeof item === 'string')
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 }
 
 function normalizeCurrency(value: unknown): string {
   if (value === undefined) {
-    return "EUR";
+    return 'EUR';
   }
-  if (typeof value !== "string" || value.trim().length !== 3) {
-    throw new Error("currency must be a 3-letter code.");
+  if (typeof value !== 'string' || value.trim().length !== 3) {
+    throw new Error('currency must be a 3-letter code.');
   }
   return value.trim().toUpperCase();
 }
@@ -167,11 +171,11 @@ async function assertPlayerExists(playerId: number) {
   });
 
   if (!player) {
-    throw new Error("Player not found.");
+    throw new Error('Player not found.');
   }
 }
 
-async function assertClubExists(clubId: number, fieldName: "fromClubId" | "toClubId") {
+async function assertClubExists(clubId: number, fieldName: 'fromClubId' | 'toClubId') {
   const club = await prisma.club.findUnique({
     where: { id: clubId },
     select: { id: true },
@@ -185,6 +189,8 @@ async function assertClubExists(clubId: number, fieldName: "fromClubId" | "toClu
 function mapTransferRumor(doc: {
   id: string;
   playerId: number;
+  playerFirstName?: string | null;
+  playerLastName?: string | null;
   fromClubId?: number | null;
   toClubId?: number | null;
   source: string;
@@ -206,6 +212,8 @@ function mapTransferRumor(doc: {
   return {
     id: doc.id,
     playerId: doc.playerId,
+    playerFirstName: doc.playerFirstName ?? null,
+    playerLastName: doc.playerLastName ?? null,
     fromClubId: doc.fromClubId ?? null,
     toClubId: doc.toClubId ?? null,
     source: doc.source,
@@ -258,19 +266,12 @@ export async function listTransferRumors(params: ListTransferRumorsParams) {
     filter.rumorType = params.rumorType;
   }
   if (params.source) {
-    filter.source = new RegExp(params.source, "i");
+    filter.source = new RegExp(params.source, 'i');
   }
 
   const skip = (params.page - 1) * params.limit;
 
-  const [items, total] = await Promise.all([
-    TransferRumor.find(filter)
-      .sort({ publishedAt: -1, _id: -1 })
-      .skip(skip)
-      .limit(params.limit)
-      .exec(),
-    TransferRumor.countDocuments(filter),
-  ]);
+  const [items, total] = await Promise.all([TransferRumor.find(filter).sort({ publishedAt: -1, _id: -1 }).skip(skip).limit(params.limit).exec(), TransferRumor.countDocuments(filter)]);
 
   return {
     items: items.map((item) => mapTransferRumor(item)),
@@ -291,51 +292,35 @@ export async function getTransferRumorById(id: string) {
 }
 
 export async function createTransferRumor(input: CreateTransferRumorInput) {
-  const playerId = assertPositiveInt(input.playerId, "playerId");
+  const playerId = assertPositiveInt(input.playerId, 'playerId');
 
-  if (typeof input.source !== "string" || input.source.trim().length === 0) {
-    throw new Error("source is required.");
+  if (typeof input.source !== 'string' || input.source.trim().length === 0) {
+    throw new Error('source is required.');
   }
 
-  const fromClubId =
-    input.fromClubId === undefined || input.fromClubId === null
-      ? null
-      : assertPositiveInt(input.fromClubId, "fromClubId");
-  const toClubId =
-    input.toClubId === undefined || input.toClubId === null
-      ? null
-      : assertPositiveInt(input.toClubId, "toClubId");
+  const fromClubId = input.fromClubId === undefined || input.fromClubId === null ? null : assertPositiveInt(input.fromClubId, 'fromClubId');
+  const toClubId = input.toClubId === undefined || input.toClubId === null ? null : assertPositiveInt(input.toClubId, 'toClubId');
 
   if (fromClubId !== null && toClubId !== null && fromClubId === toClubId) {
-    throw new Error("fromClubId and toClubId cannot be the same.");
+    throw new Error('fromClubId and toClubId cannot be the same.');
   }
 
-  const rumoredFee =
-    input.rumoredFee === undefined ? undefined : assertNonNegativeNumber(input.rumoredFee, "rumoredFee");
-  const rumoredLoanFee =
-    input.rumoredLoanFee === undefined
-      ? undefined
-      : assertNonNegativeNumber(input.rumoredLoanFee, "rumoredLoanFee");
-  const salaryExpectation =
-    input.salaryExpectation === undefined
-      ? undefined
-      : assertNonNegativeNumber(input.salaryExpectation, "salaryExpectation");
-  const contractYears =
-    input.contractYears === undefined
-      ? undefined
-      : assertPositiveInt(input.contractYears, "contractYears");
+  const rumoredFee = input.rumoredFee === undefined ? undefined : assertNonNegativeNumber(input.rumoredFee, 'rumoredFee');
+  const rumoredLoanFee = input.rumoredLoanFee === undefined ? undefined : assertNonNegativeNumber(input.rumoredLoanFee, 'rumoredLoanFee');
+  const salaryExpectation = input.salaryExpectation === undefined ? undefined : assertNonNegativeNumber(input.salaryExpectation, 'salaryExpectation');
+  const contractYears = input.contractYears === undefined ? undefined : assertPositiveInt(input.contractYears, 'contractYears');
 
   if (contractYears !== undefined && contractYears > 10) {
-    throw new Error("contractYears must be less than or equal to 10.");
+    throw new Error('contractYears must be less than or equal to 10.');
   }
 
   await assertPlayerExists(playerId);
 
   if (fromClubId !== null) {
-    await assertClubExists(fromClubId, "fromClubId");
+    await assertClubExists(fromClubId, 'fromClubId');
   }
   if (toClubId !== null) {
-    await assertClubExists(toClubId, "toClubId");
+    await assertClubExists(toClubId, 'toClubId');
   }
 
   await connectToDatabase();
@@ -345,9 +330,9 @@ export async function createTransferRumor(input: CreateTransferRumorInput) {
     fromClubId,
     toClubId,
     source: input.source.trim(),
-    credibility: input.credibility ? assertCredibility(input.credibility) : "Medium",
-    status: input.status ? assertStatus(input.status) : "Active",
-    rumorType: input.rumorType ? assertRumorType(input.rumorType) : "Transfer",
+    credibility: input.credibility ? assertCredibility(input.credibility) : 'Medium',
+    status: input.status ? assertStatus(input.status) : 'Active',
+    rumorType: input.rumorType ? assertRumorType(input.rumorType) : 'Transfer',
     rumoredFee,
     rumoredLoanFee,
     salaryExpectation,
@@ -355,8 +340,8 @@ export async function createTransferRumor(input: CreateTransferRumorInput) {
     currency: normalizeCurrency(input.currency),
     links: input.links ? normalizeLinks(input.links) : [],
     notes: input.notes ?? null,
-    publishedAt: toDateOrNow(input.publishedAt, "publishedAt"),
-    expiresAt: toDateOrNull(input.expiresAt, "expiresAt"),
+    publishedAt: toDateOrNow(input.publishedAt, 'publishedAt'),
+    expiresAt: toDateOrNull(input.expiresAt, 'expiresAt'),
   });
 
   return mapTransferRumor(created);
@@ -369,7 +354,7 @@ export async function updateTransferRumor(id: string, input: UpdateTransferRumor
   let requestedStatus: RumorStatus | undefined;
 
   if (input.playerId !== undefined) {
-    const playerId = assertPositiveInt(input.playerId, "playerId");
+    const playerId = assertPositiveInt(input.playerId, 'playerId');
     await assertPlayerExists(playerId);
     payload.playerId = playerId;
   }
@@ -378,8 +363,8 @@ export async function updateTransferRumor(id: string, input: UpdateTransferRumor
     if (input.fromClubId === null) {
       payload.fromClubId = null;
     } else {
-      const fromClubId = assertPositiveInt(input.fromClubId, "fromClubId");
-      await assertClubExists(fromClubId, "fromClubId");
+      const fromClubId = assertPositiveInt(input.fromClubId, 'fromClubId');
+      await assertClubExists(fromClubId, 'fromClubId');
       payload.fromClubId = fromClubId;
     }
   }
@@ -388,15 +373,15 @@ export async function updateTransferRumor(id: string, input: UpdateTransferRumor
     if (input.toClubId === null) {
       payload.toClubId = null;
     } else {
-      const toClubId = assertPositiveInt(input.toClubId, "toClubId");
-      await assertClubExists(toClubId, "toClubId");
+      const toClubId = assertPositiveInt(input.toClubId, 'toClubId');
+      await assertClubExists(toClubId, 'toClubId');
       payload.toClubId = toClubId;
     }
   }
 
   if (input.source !== undefined) {
-    if (typeof input.source !== "string" || input.source.trim().length === 0) {
-      throw new Error("source cannot be empty.");
+    if (typeof input.source !== 'string' || input.source.trim().length === 0) {
+      throw new Error('source cannot be empty.');
     }
     payload.source = input.source.trim();
   }
@@ -414,21 +399,21 @@ export async function updateTransferRumor(id: string, input: UpdateTransferRumor
   }
 
   if (input.rumoredFee !== undefined) {
-    payload.rumoredFee = assertNonNegativeNumber(input.rumoredFee, "rumoredFee");
+    payload.rumoredFee = assertNonNegativeNumber(input.rumoredFee, 'rumoredFee');
   }
 
   if (input.rumoredLoanFee !== undefined) {
-    payload.rumoredLoanFee = assertNonNegativeNumber(input.rumoredLoanFee, "rumoredLoanFee");
+    payload.rumoredLoanFee = assertNonNegativeNumber(input.rumoredLoanFee, 'rumoredLoanFee');
   }
 
   if (input.salaryExpectation !== undefined) {
-    payload.salaryExpectation = assertNonNegativeNumber(input.salaryExpectation, "salaryExpectation");
+    payload.salaryExpectation = assertNonNegativeNumber(input.salaryExpectation, 'salaryExpectation');
   }
 
   if (input.contractYears !== undefined) {
-    const contractYears = assertPositiveInt(input.contractYears, "contractYears");
+    const contractYears = assertPositiveInt(input.contractYears, 'contractYears');
     if (contractYears > 10) {
-      throw new Error("contractYears must be less than or equal to 10.");
+      throw new Error('contractYears must be less than or equal to 10.');
     }
     payload.contractYears = contractYears;
   }
@@ -446,42 +431,30 @@ export async function updateTransferRumor(id: string, input: UpdateTransferRumor
   }
 
   if (input.publishedAt !== undefined) {
-    const parsedPublishedAt = toDateOrNull(input.publishedAt, "publishedAt");
+    const parsedPublishedAt = toDateOrNull(input.publishedAt, 'publishedAt');
     if (!parsedPublishedAt) {
-      throw new Error("publishedAt cannot be null.");
+      throw new Error('publishedAt cannot be null.');
     }
     payload.publishedAt = parsedPublishedAt;
   }
 
   if (input.expiresAt !== undefined) {
-    payload.expiresAt = toDateOrNull(input.expiresAt, "expiresAt");
+    payload.expiresAt = toDateOrNull(input.expiresAt, 'expiresAt');
   }
 
   await connectToDatabase();
 
-  const existing = await TransferRumor.findById(id)
-    .select({ status: 1, fromClubId: 1, toClubId: 1 })
-    .exec();
+  const existing = await TransferRumor.findById(id).select({ status: 1, fromClubId: 1, toClubId: 1 }).exec();
 
   if (!existing) {
     return null;
   }
 
-  const nextFromClubId =
-    payload.fromClubId !== undefined
-      ? (payload.fromClubId as number | null)
-      : (existing.fromClubId ?? null);
-  const nextToClubId =
-    payload.toClubId !== undefined
-      ? (payload.toClubId as number | null)
-      : (existing.toClubId ?? null);
+  const nextFromClubId = payload.fromClubId !== undefined ? (payload.fromClubId as number | null) : (existing.fromClubId ?? null);
+  const nextToClubId = payload.toClubId !== undefined ? (payload.toClubId as number | null) : (existing.toClubId ?? null);
 
-  if (
-    nextFromClubId !== null &&
-    nextToClubId !== null &&
-    nextFromClubId === nextToClubId
-  ) {
-    throw new Error("fromClubId and toClubId cannot be the same.");
+  if (nextFromClubId !== null && nextToClubId !== null && nextFromClubId === nextToClubId) {
+    throw new Error('fromClubId and toClubId cannot be the same.');
   }
 
   if (requestedStatus !== undefined) {

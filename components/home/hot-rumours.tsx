@@ -63,13 +63,15 @@ export async function HotRumours() {
             const player = playerMap.get(r.playerId);
             const fromClub = r.fromClubId ? clubMap.get(r.fromClubId) : null;
             const toClub = r.toClubId ? clubMap.get(r.toClubId) : null;
+            const storedPlayerName = `${r.playerFirstName ?? ''} ${r.playerLastName ?? ''}`.trim();
+            const playerName = player ? `${player.firstName} ${player.lastName}`.trim() : storedPlayerName || `Zawodnik #${r.playerId}`;
 
             return (
               <Link key={r.id} href={`/players/${r.playerId}`} className="flex items-center gap-3 px-6 py-3.5 hover:bg-muted/30 transition-colors group">
-                <PlayerAvatar firstName={player?.firstName} lastName={player?.lastName} name={player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${r.playerId}`} imageUrl={player?.imageUrl} tone="orange" className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover" />
+                <PlayerAvatar firstName={player?.firstName ?? r.playerFirstName ?? undefined} lastName={player?.lastName ?? r.playerLastName ?? undefined} name={playerName} imageUrl={player?.imageUrl} tone="orange" className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground group-hover:text-emerald-400 transition-colors truncate">{player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${r.playerId}`}</span>
+                    <span className="text-sm font-medium text-foreground group-hover:text-emerald-400 transition-colors truncate">{playerName}</span>
                     <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{player ? getPlayerPositionAbbreviation(player.position) : 'N/A'}</span>
                   </div>
                   <div className="flex items-center gap-1 mt-0.5 text-xs text-muted-foreground">

@@ -2,6 +2,8 @@ import { Schema, model, models, Document } from 'mongoose';
 
 export interface IInjury extends Document {
   playerId: number;
+  playerFirstName?: string;
+  playerLastName?: string;
   type_PL: string;
   type_EN: string;
   severity: 'Lekka' | 'Średnia' | 'Poważna' | 'Krytyczna';
@@ -21,6 +23,8 @@ export interface IInjury extends Document {
 const InjurySchema = new Schema(
   {
     playerId: { type: Number, required: true },
+    playerFirstName: { type: String },
+    playerLastName: { type: String },
 
     // Szczegóły kontuzji
     type_PL: { type: String, required: true }, // np. "Zerwanie więzadeł"

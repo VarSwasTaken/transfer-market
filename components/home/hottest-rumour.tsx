@@ -31,8 +31,8 @@ export async function HottestRumour() {
     rumor.toClubId ? prisma.club.findUnique({ where: { id: rumor.toClubId }, select: { name: true } }) : null,
   ]);
 
-  const playerInitials = player ? `${player.firstName[0]}${player.lastName[0]}`.toUpperCase() : '??';
-  const playerName = player ? `${player.firstName} ${player.lastName}` : `Zawodnik #${rumor.playerId}`;
+  const storedPlayerName = `${rumor.playerFirstName ?? ''} ${rumor.playerLastName ?? ''}`.trim();
+  const playerName = player ? `${player.firstName} ${player.lastName}`.trim() : storedPlayerName || `Zawodnik #${rumor.playerId}`;
   const fromClubName = fromClub?.name ?? 'N/A';
   const toClubName = toClub?.name ?? 'N/A';
   const fee = rumor.rumoredFee ? `€ ${(rumor.rumoredFee / 1_000_000).toFixed(0)} mln` : 'Brak';
@@ -46,7 +46,7 @@ export async function HottestRumour() {
       </div>
       <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">
         <div className="flex items-center gap-3">
-          <PlayerAvatar name={playerName} firstName={player?.firstName} lastName={player?.lastName} imageUrl={player?.imageUrl} tone="orange" className="flex h-12 w-9 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover object-center" />
+          <PlayerAvatar name={playerName} firstName={player?.firstName ?? rumor.playerFirstName ?? undefined} lastName={player?.lastName ?? rumor.playerLastName ?? undefined} imageUrl={player?.imageUrl} tone="orange" className="flex h-12 w-9 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover object-center" />
           <div>
             <p className="text-xs text-orange-400 font-medium uppercase tracking-wider flex items-center gap-1">
               <Flame className="h-3 w-3" />
