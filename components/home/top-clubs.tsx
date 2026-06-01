@@ -40,14 +40,7 @@ export async function TopClubs() {
                   <span className="text-sm font-medium text-foreground group-hover:text-emerald-400 transition-colors truncate">{c.name}</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-                  {c.league.logoUrl ? (
-                    <div className="flex h-3.5 w-5 shrink-0 items-center justify-center overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={c.league.logoUrl} alt={c.league.name} className="h-full w-full object-contain" />
-                    </div>
-                  ) : (
-                    <div className="h-3.5 w-5 shrink-0 rounded-sm bg-muted" />
-                  )}
+                  <ClubLogo name={c.league.name} logoUrl={c.league.logoUrl} className="flex h-3.5 w-5 shrink-0 items-center justify-center overflow-hidden" imageClassName="h-full w-full object-contain object-center" fallbackClassName="flex h-3.5 w-5 shrink-0 items-center justify-center overflow-hidden" iconClassName="h-2.5 w-2.5 text-muted-foreground" />
                   <span className="truncate">{c.league.name}</span>
                 </div>
                 <div className="flex items-center justify-between mt-1">

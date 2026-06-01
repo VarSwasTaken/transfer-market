@@ -43,26 +43,14 @@ function formatCurrency(value: string | null): string {
 
 export function LeagueProfileView({ league }: { league: LeagueProfileData }) {
   const logoSrc = league.logoUrl?.trim() || null;
-  const logoIsExternal = logoSrc ? /^https?:\/\//i.test(logoSrc) : false;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Header Card */}
       <div className="mb-8 rounded-xl border border-border/40 bg-card/50 p-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          {/* Logo */}
-          <div className="relative flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-linear-to-br from-slate-600 to-slate-800 shadow-lg">
-            {logoSrc ? (
-              logoIsExternal ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoSrc} alt={league.name} className="h-full w-full object-cover object-center" />
-              ) : (
-                <Image src={logoSrc} alt={league.name} fill className="object-cover object-center" />
-              )
-            ) : (
-              <span className="text-lg font-bold text-white">{league.name.substring(0, 2).toUpperCase()}</span>
-            )}
-          </div>
+          {/* Logo Ligi */}
+          <ClubLogo name={league.name} logoUrl={logoSrc} className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl" imageClassName="h-full w-full object-contain object-center p-2" fallbackClassName="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted border border-border/30" iconClassName="h-10 w-10 text-muted-foreground" />
 
           {/* Header Info */}
           <div className="flex-1 min-w-0">
@@ -106,28 +94,29 @@ export function LeagueProfileView({ league }: { league: LeagueProfileData }) {
         <h2 className="text-2xl font-bold text-foreground mb-4">Kluby w lidze ({league.stats.clubCount})</h2>
         <div className="grid gap-4">
           {league.clubs.map((club) => (
-            <Link key={club.id} href={`/clubs/${club.id}`}>
-              <Card className="hover:border-emerald-500/40 transition-colors cursor-pointer">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
+            <Link key={club.id} href={`/clubs/${club.id}`} className="group">
+              <Card className="cursor-pointer transition-colors hover:border-emerald-500/40">
+                {/* Zmniejszyłem lekko py z 4 na 3 dla lepszej zwartości listy, ale możesz przywrócić py-4 */}
+                <CardContent className="px-6 py-4">
+                  <div className="flex items-center gap-6">
+                    {' '}
+                    {/* Zwiększony gap dla idealnego wyrównania w kolumnach */}
                     {/* Club Logo */}
-                    <ClubLogo name={club.name} logoUrl={club.logoUrl} className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted border border-border/30" imageClassName="h-full w-full object-contain object-center p-1.5" iconClassName="h-5 w-5 text-muted-foreground" />
-
+                    <ClubLogo name={club.name} logoUrl={club.logoUrl} className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden" imageClassName="h-full w-full object-contain object-center" fallbackClassName="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted border border-border/30" iconClassName="h-6 w-6 text-muted-foreground" />
                     {/* Club Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-foreground truncate">{club.name}</h3>
-                      <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+                      <h3 className="text-lg font-semibold text-foreground truncate transition-colors group-hover:text-emerald-400">{club.name}</h3>
+                      <div className="flex flex-wrap gap-3 mt-1 text-sm text-muted-foreground">
                         <span>
                           Zawodnicy: <span className="text-foreground font-medium">{club.playerCount}</span>
                         </span>
                         <span>
-                          Budget: <span className="text-foreground font-medium">{formatCurrency(club.budget)}</span>
+                          Budżet: <span className="text-foreground font-medium">{formatCurrency(club.budget)}</span>
                         </span>
                       </div>
                     </div>
-
                     {/* Arrow */}
-                    <div className="text-muted-foreground group-hover:text-emerald-400 transition-colors">→</div>
+                    <div className="flex shrink-0 items-center justify-center text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-emerald-400">→</div>
                   </div>
                 </CardContent>
               </Card>

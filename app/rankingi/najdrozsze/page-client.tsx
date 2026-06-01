@@ -3,8 +3,10 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { normalizeLanguage, getTranslations, type Language } from '@/lib/i18n';
@@ -13,6 +15,15 @@ import { ClubLogo, PlayerAvatar } from '@/components/media/entity-media';
 import { getPlayerPositionAbbreviation } from '@/lib/utils';
 
 import type { TopPlayerItem } from '@/lib/services/rankings';
+
+type PlayerTone = 'emerald' | 'orange' | 'blue' | 'sky' | 'violet';
+
+const playerToneByPosition: Record<string, PlayerTone> = {
+  GOALKEEPER: 'violet',
+  DEFENDER: 'orange',
+  MIDFIELDER: 'sky',
+  FORWARD: 'emerald',
+};
 
 const POSITIONS = ['GOALKEEPER', 'DEFENDER', 'MIDFIELDER', 'FORWARD'];
 const POSITION_NAMES: Record<string, { pl: string; en: string }> = {
@@ -27,21 +38,15 @@ export default function TopPlayersPage() {
   const page = parseInt(searchParams?.get('page') || '1', 10);
   const selectedPosition = (searchParams?.get('position') || '') as string;
 
-  const [language, setLanguage] = useState<Language>('pl');
-  const [mounted, setMounted] = useState(false);
+  const [language, setLanguage] = useState<Language>(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('ui-language') : null;
+    return normalizeLanguage(stored);
+  });
   const [data, setData] = useState<TopPlayerItem[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('ui-language') : null;
-    const normalized = normalizeLanguage(stored);
-    setLanguage(normalized);
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
     const handleLanguageChange = () => {
       const stored = localStorage.getItem('ui-language');
       const normalized = normalizeLanguage(stored);
@@ -49,11 +54,9 @@ export default function TopPlayersPage() {
     };
     window.addEventListener('language-changed', handleLanguageChange);
     return () => window.removeEventListener('language-changed', handleLanguageChange);
-  }, [mounted]);
+  }, []);
 
   useEffect(() => {
-    if (!mounted) return;
-
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -75,9 +78,7 @@ export default function TopPlayersPage() {
     };
 
     fetchData();
-  }, [mounted, page, selectedPosition]);
-
-  if (!mounted) return null;
+  }, [page, selectedPosition]);
 
   const t = getTranslations(language).rankings;
   const currentUrl = `/rankings/most-expensive-players`;
@@ -150,41 +151,48 @@ export default function TopPlayersPage() {
                   <tr className="border-b border-border/30 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     <th className="px-4 py-3">#</th>
                     <th className="px-4 py-3">{t.player}</th>
-                    <th className="px-4 py-3">{t.position}</th>
+                    <th className="px-4 py-3 text-center">{t.position}</th>
                     <th className="px-4 py-3">{t.club}</th>
                     <th className="px-4 py-3 text-center">{t.marketValue}</th>
                     <th className="px-4 py-3 text-center">{t.age}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
-                  {data.map((player) => (
-                    <tr key={player.id} className="hover:bg-emerald-500/5 transition-colors">
-                      <td className="px-4 py-3 font-semibold text-emerald-400">{player.rank}</td>
-                      <td className="px-4 py-3">
-                        <Link href={`/players/${player.id}`} className="flex items-center gap-2 group text-sm hover:text-emerald-400 transition-colors">
-                          <PlayerAvatar firstName={player.firstName} lastName={player.lastName} imageUrl={player.imageUrl} className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded" imageClassName="h-full w-full object-cover object-center" />
-                          <span className="truncate group-hover:underline">
-                            {player.firstName} {player.lastName}
-                          </span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className="inline-block rounded bg-muted px-2 py-1 text-xs font-semibold text-muted-foreground">{getPlayerPositionAbbreviation(player.position)}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {player.club ? (
-                          <Link href={`/clubs/${player.club.id}`} className="flex items-center gap-2 group text-sm text-foreground hover:text-emerald-400 transition-colors">
-                            <ClubLogo name={player.club.name} logoUrl={player.club.logoUrl} className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center" iconClassName="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate group-hover:underline">{player.club.name}</span>
+                  {data.map((player) => {
+                    const avatarTone = playerToneByPosition[player.position] || 'emerald';
+
+                    return (
+                      <tr key={player.id} className="hover:bg-emerald-500/5 transition-colors">
+                        <td className="px-4 py-3 font-semibold text-emerald-400">{player.rank}</td>
+                        <td className="px-4 py-3">
+                          <Link href={`/players/${player.id}`} className="flex items-center gap-2 group text-sm hover:text-emerald-400 transition-colors">
+                            <PlayerAvatar firstName={player.firstName} lastName={player.lastName} name={`${player.firstName} ${player.lastName}`} imageUrl={player.imageUrl} tone={avatarTone} className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded text-xs font-bold" imageClassName="h-full w-full object-cover object-center" />
+                            <span className="flex min-w-0 items-center gap-2 truncate group-hover:underline">
+                              <span className="truncate font-medium">
+                                {player.firstName} {player.lastName}
+                              </span>
+                              {player.nationality?.flagUrl && <Image src={player.nationality.flagUrl} alt={player.nationality.name} width={20} height={14} className="h-3.5 w-5 shrink-0 rounded-sm object-cover" />}
+                            </span>
                           </Link>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center font-semibold text-emerald-400">{player.marketValue}</td>
-                      <td className="px-4 py-3 text-center text-sm text-muted-foreground">{player.age}</td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-center text-sm">
+                          <span className="inline-block rounded bg-muted px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider">{getPlayerPositionAbbreviation(player.position)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {player.club ? (
+                            <Link href={`/clubs/${player.club.id}`} className="flex items-center gap-2 group text-sm text-foreground hover:text-emerald-400 transition-colors">
+                              <ClubLogo name={player.club.name} logoUrl={player.club.logoUrl} className="h-5 w-5" />
+                              <span className="truncate group-hover:underline">{player.club.name}</span>
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center font-semibold text-emerald-400">{player.marketValue}</td>
+                        <td className="px-4 py-3 text-center text-sm text-muted-foreground">{player.age}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

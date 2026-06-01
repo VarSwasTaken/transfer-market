@@ -1,14 +1,24 @@
 import Link from 'next/link';
 import { ArrowRight, TrendingUp } from 'lucide-react';
-import { PlayerAvatar } from '@/components/media/entity-media';
+import { ClubLogo, PlayerAvatar } from '@/components/media/entity-media';
 
 import { prisma } from '@/lib/prisma';
 import { listTransferRumors, type TransferRumorDto } from '@/lib/services/transfer-rumors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getPlayerPositionAbbreviation } from '@/lib/utils';
 
 type PageParams = {
   searchParams: Promise<Record<string, string | undefined>>;
+};
+
+type PlayerTone = 'emerald' | 'orange' | 'blue' | 'sky' | 'violet';
+
+const playerToneByPosition: Record<string, PlayerTone> = {
+  GOALKEEPER: 'violet',
+  DEFENDER: 'orange',
+  MIDFIELDER: 'sky',
+  FORWARD: 'emerald',
 };
 
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -168,15 +178,18 @@ export default async function TransferRumoursPage({ searchParams }: PageParams) 
                     const toClub = rumor.toClubId ? clubById.get(rumor.toClubId) : null;
                     const storedPlayerName = `${rumor.playerFirstName ?? ''} ${rumor.playerLastName ?? ''}`.trim();
                     const playerName = player ? `${player.firstName} ${player.lastName}`.trim() : storedPlayerName || `Zawodnik #${rumor.playerId}`;
+                    const avatarTone = player?.position ? playerToneByPosition[player.position] || 'emerald' : 'emerald';
 
                     return (
                       <tr key={rumor.id} className="hover:bg-emerald-500/5 transition-colors">
                         <td className="px-4 py-3">
-                          <Link href={`/players/${rumor.playerId}`} className="flex items-center gap-2 group">
-                            <PlayerAvatar name={playerName} firstName={player?.firstName ?? rumor.playerFirstName ?? undefined} lastName={player?.lastName ?? rumor.playerLastName ?? undefined} imageUrl={player?.imageUrl} tone="orange" className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg" imageClassName="h-full w-full object-cover object-center" />
+                          <Link href={`/players/${rumor.playerId}`} className="flex items-center gap-3 group">
+                            <PlayerAvatar name={playerName} firstName={player?.firstName ?? rumor.playerFirstName ?? undefined} lastName={player?.lastName ?? rumor.playerLastName ?? undefined} imageUrl={player?.imageUrl} tone={avatarTone} className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded text-xs font-bold" imageClassName="h-full w-full object-cover object-center" />
                             <div className="min-w-0">
                               <div className="text-sm font-semibold text-foreground group-hover:text-emerald-400 transition-colors truncate">{playerName}</div>
-                              <div className="text-xs text-muted-foreground">{player?.position ?? 'N/A'}</div>
+                              <div className="mt-1">
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{player?.position ? getPlayerPositionAbbreviation(player.position) : 'N/A'}</span>
+                              </div>
                             </div>
                           </Link>
                         </td>
@@ -184,14 +197,26 @@ export default async function TransferRumoursPage({ searchParams }: PageParams) 
                         <td className="px-4 py-3 text-sm text-muted-foreground">{rumorTypeLabel(rumor.rumorType)}</td>
 
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Link href={`/clubs/${rumor.fromClubId}`} className="text-foreground hover:text-emerald-400 transition-colors truncate max-w-20">
-                              {fromClub?.name ?? 'N/A'}
-                            </Link>
+                          <div className="flex items-center gap-2 text-sm">
+                            {fromClub ? (
+                              <Link href={`/clubs/${rumor.fromClubId}`} className="flex items-center gap-1.5 text-foreground hover:text-emerald-400 transition-colors truncate max-w-[140px] group">
+                                <ClubLogo name={fromClub.name} logoUrl={fromClub.logoUrl} className="h-6 w-6" />
+                                <span className="truncate group-hover:underline">{fromClub.name}</span>
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground">Brak</span>
+                            )}
+
                             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                            <Link href={`/clubs/${rumor.toClubId}`} className="text-foreground hover:text-emerald-400 transition-colors truncate max-w-20">
-                              {toClub?.name ?? 'N/A'}
-                            </Link>
+
+                            {toClub ? (
+                              <Link href={`/clubs/${rumor.toClubId}`} className="flex items-center gap-1.5 text-foreground hover:text-emerald-400 transition-colors truncate max-w-[140px] group">
+                                <ClubLogo name={toClub.name} logoUrl={toClub.logoUrl} className="h-6 w-6" />
+                                <span className="truncate group-hover:underline">{toClub.name}</span>
+                              </Link>
+                            ) : (
+                              <span className="text-muted-foreground">Nieznany</span>
+                            )}
                           </div>
                         </td>
 

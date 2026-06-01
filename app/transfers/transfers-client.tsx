@@ -7,17 +7,20 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { ClubLogo, PlayerAvatar } from '@/components/media/entity-media';
+import { getPlayerPositionAbbreviation } from '@/lib/utils';
 
-const POSITIONS: Record<string, { pl: string; en: string }> = {
-  GOALKEEPER: { pl: 'Bramkarz', en: 'Goalkeeper' },
-  DEFENDER: { pl: 'Obrońca', en: 'Defender' },
-  MIDFIELDER: { pl: 'Pomocnik', en: 'Midfielder' },
-  FORWARD: { pl: 'Napastnik', en: 'Forward' },
+type PlayerTone = 'emerald' | 'orange' | 'blue' | 'sky' | 'violet';
+
+const playerToneByPosition: Record<string, PlayerTone> = {
+  GOALKEEPER: 'violet',
+  DEFENDER: 'orange',
+  MIDFIELDER: 'sky',
+  FORWARD: 'emerald',
 };
 
 const formatTransferFee = (fee: string): string => {
   const num = Number(fee);
-  if (num === 0) return 'Free';
+  if (num === 0) return 'Za darmo';
   if (num >= 1000000) return `€${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `€${(num / 1000).toFixed(0)}K`;
   return `€${num}`;
@@ -52,7 +55,7 @@ export default function TransfersClient({ windowStart, windowEnd }: TransfersCli
         setData(result.data || []);
         setMeta(result.meta || {});
       } catch (error) {
-        console.error('Error fetching transfers:', error);
+        console.error('Błąd pobierania transferów:', error);
       } finally {
         setLoading(false);
       }
@@ -72,61 +75,67 @@ export default function TransfersClient({ windowStart, windowEnd }: TransfersCli
       <Card className="border-border/40 bg-card/50">
         <CardContent className="p-0">
           {loading ? (
-            <div className="px-6 py-8 text-center text-muted-foreground">Loading transfers...</div>
+            <div className="px-6 py-8 text-center text-muted-foreground">Ładowanie transferów...</div>
           ) : data.length === 0 ? (
-            <div className="px-6 py-8 text-center text-muted-foreground">No transfers found</div>
+            <div className="px-6 py-8 text-center text-muted-foreground">Brak transferów</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/30 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                    <th className="px-4 py-3">Player</th>
-                    <th className="px-4 py-3 text-center">Position</th>
-                    <th className="px-4 py-3">From</th>
-                    <th className="px-4 py-3">To</th>
-                    <th className="px-4 py-3 text-center">Transfer Fee</th>
-                    <th className="px-4 py-3 text-right">Date</th>
+                    <th className="px-4 py-3">Zawodnik</th>
+                    <th className="px-4 py-3 text-center">Pozycja</th>
+                    <th className="px-4 py-3">Z</th>
+                    <th className="px-4 py-3">Do</th>
+                    <th className="px-4 py-3 text-center">Kwota</th>
+                    <th className="px-4 py-3 text-right">Data</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/30">
-                  {data.map((transfer) => (
-                    <tr key={transfer.id} className="hover:bg-emerald-500/5 transition-colors">
-                      <td className="px-4 py-3">
-                        <Link href={`/players/${transfer.playerId}`} className="flex items-center gap-2 group text-sm hover:text-emerald-400 transition-colors">
-                          <PlayerAvatar name={transfer.playerName} imageUrl={transfer.playerImageUrl} className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg" imageClassName="h-full w-full object-cover object-center" />
-                          <div className="flex flex-col">
-                            <span className="truncate group-hover:underline font-medium">{transfer.playerName}</span>
-                            {transfer.playerNationalityFlag && (
-                              <div className="mt-0.5 flex items-center gap-2">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={transfer.playerNationalityFlag} alt={transfer.playerNationalityName || 'nation'} className="h-3 w-4 rounded-sm shrink-0" />
-                                {transfer.playerNationalityName && <span className="text-xs text-muted-foreground">{transfer.playerNationalityName}</span>}
-                              </div>
-                            )}
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm">{POSITIONS[transfer.playerPosition]?.pl || transfer.playerPosition}</td>
-                      <td className="px-4 py-3">
-                        {transfer.fromClubId ? (
-                          <Link href={`/clubs/${transfer.fromClubId}`} className="flex items-center gap-2 group text-sm text-foreground hover:text-emerald-400 transition-colors">
-                            <ClubLogo name={transfer.fromClubName} logoUrl={transfer.fromClubLogoUrl} className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center p-0.5" iconClassName="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate group-hover:underline">{transfer.fromClubName}</span>
+                  {data.map((transfer) => {
+                    const avatarTone = playerToneByPosition[transfer.playerPosition] || 'emerald';
+
+                    return (
+                      <tr key={transfer.id} className="hover:bg-emerald-500/5 transition-colors">
+                        <td className="px-4 py-3">
+                          <Link href={`/players/${transfer.playerId}`} className="flex items-center gap-3 group text-sm hover:text-emerald-400 transition-colors">
+                            <PlayerAvatar name={transfer.playerName} imageUrl={transfer.playerImageUrl} tone={avatarTone} className="flex h-12 w-9 shrink-0 items-center justify-center overflow-hidden rounded text-xs font-bold" imageClassName="h-full w-full object-cover object-center" />
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate group-hover:underline font-medium">{transfer.playerName}</span>
+                              {transfer.playerNationalityFlag && (
+                                <div className="mt-0.5 flex items-center gap-1.5">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={transfer.playerNationalityFlag} alt={transfer.playerNationalityName || 'Kraj'} className="h-3 w-4 rounded-sm shrink-0 object-cover" />
+                                  {transfer.playerNationalityName && <span className="text-xs text-muted-foreground truncate">{transfer.playerNationalityName}</span>}
+                                </div>
+                              )}
+                            </div>
                           </Link>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">-</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/clubs/${transfer.toClubId}`} className="flex items-center gap-2 group text-sm text-foreground hover:text-emerald-400 transition-colors">
-                          <ClubLogo name={transfer.toClubName} logoUrl={transfer.toClubLogoUrl} className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center p-0.5" iconClassName="h-3 w-3 text-muted-foreground" />
-                          <span className="truncate group-hover:underline">{transfer.toClubName}</span>
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-center font-semibold text-emerald-400">{formatTransferFee(transfer.fee)}</td>
-                      <td className="px-4 py-3 text-right text-sm text-muted-foreground">{new Date(transfer.date).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{getPlayerPositionAbbreviation(transfer.playerPosition)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {transfer.fromClubId ? (
+                            <Link href={`/clubs/${transfer.fromClubId}`} className="flex items-center gap-2 group text-sm text-foreground hover:text-emerald-400 transition-colors">
+                              <ClubLogo name={transfer.fromClubName} logoUrl={transfer.fromClubLogoUrl} className="h-6 w-6" />
+                              <span className="truncate group-hover:underline">{transfer.fromClubName}</span>
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link href={`/clubs/${transfer.toClubId}`} className="flex items-center gap-2 group text-sm text-foreground hover:text-emerald-400 transition-colors">
+                            <ClubLogo name={transfer.toClubName} logoUrl={transfer.toClubLogoUrl} className="h-6 w-6" />
+                            <span className="truncate group-hover:underline">{transfer.toClubName}</span>
+                          </Link>
+                        </td>
+                        <td className="px-4 py-3 text-center font-semibold text-emerald-400">{formatTransferFee(transfer.fee)}</td>
+                        <td className="px-4 py-3 text-right text-sm text-muted-foreground">{new Date(transfer.date).toLocaleDateString('pl-PL')}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -145,7 +154,7 @@ export default function TransfersClient({ windowStart, windowEnd }: TransfersCli
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
-              Page {meta.page} of {meta.totalPages}
+              Strona {meta.page} z {meta.totalPages}
             </span>
           </div>
 

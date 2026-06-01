@@ -5,12 +5,11 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ClubLogo } from '@/components/media/entity-media';
 import { normalizeLanguage, getTranslations, type Language } from '@/lib/i18n';
-import { ArrowLeft, ArrowRight, Filter, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 import type { ClubValuationItem } from '@/lib/services/rankings';
 
@@ -18,22 +17,15 @@ export default function ClubValuationsPage() {
   const searchParams = useSearchParams();
   const page = parseInt(searchParams?.get('page') || '1', 10);
 
-  const [language, setLanguage] = useState<Language>('pl');
-  const [mounted, setMounted] = useState(false);
+  const [language, setLanguage] = useState<Language>(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('ui-language') : null;
+    return normalizeLanguage(stored);
+  });
   const [data, setData] = useState<ClubValuationItem[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem('ui-language') : null;
-    const normalized = normalizeLanguage(stored);
-    setLanguage(normalized);
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
     const handleLanguageChange = () => {
       const stored = localStorage.getItem('ui-language');
       const normalized = normalizeLanguage(stored);
@@ -41,11 +33,19 @@ export default function ClubValuationsPage() {
     };
     window.addEventListener('language-changed', handleLanguageChange);
     return () => window.removeEventListener('language-changed', handleLanguageChange);
-  }, [mounted]);
+  }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    const handleLanguageChange = () => {
+      const stored = localStorage.getItem('ui-language');
+      const normalized = normalizeLanguage(stored);
+      setLanguage(normalized);
+    };
+    window.addEventListener('language-changed', handleLanguageChange);
+    return () => window.removeEventListener('language-changed', handleLanguageChange);
+  }, []);
 
+  useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -66,9 +66,7 @@ export default function ClubValuationsPage() {
     };
 
     fetchData();
-  }, [mounted, page]);
-
-  if (!mounted) return null;
+  }, [page]);
 
   const t = getTranslations(language).rankings;
   const currentUrl = `/rankings/most-expensive-clubs`;
@@ -114,10 +112,7 @@ export default function ClubValuationsPage() {
                       <td className="px-4 py-3">
                         <Link href={`/leagues/${club.league.slug}`} className="text-sm text-foreground hover:text-emerald-400 transition-colors group">
                           <div className="flex items-center gap-2">
-                            {club.league.logoUrl && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={club.league.logoUrl} alt={club.league.name} className="h-5 w-5 rounded-sm object-cover shrink-0" />
-                            )}
+                            <ClubLogo name={club.league.name} logoUrl={club.league.logoUrl} className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden" imageClassName="h-full w-full object-contain object-center" fallbackClassName="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden" iconClassName="h-3 w-3 text-muted-foreground" />
                             <span className="truncate group-hover:underline">{club.league.name}</span>
                           </div>
                         </Link>

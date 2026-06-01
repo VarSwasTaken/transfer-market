@@ -25,6 +25,7 @@ export async function InjuredPlayers() {
       position: true,
       imageUrl: true,
       club: { select: { name: true } },
+      nationality: { select: { name: true, name_PL: true } },
     },
   });
 
@@ -69,7 +70,7 @@ export async function InjuredPlayers() {
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">
-                      {player?.club?.name || 'N/A'} • {p.type}
+                      {player?.club?.name || 'N/A'} • {player?.nationality?.name_PL || player?.nationality?.name || 'N/A'} {p.type}
                     </span>
                   </div>
                 </div>

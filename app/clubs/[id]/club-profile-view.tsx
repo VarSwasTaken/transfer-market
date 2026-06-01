@@ -263,12 +263,7 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
               <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-xs text-emerald-300">
                 {club.league ? (
                   <Link href={`/leagues/${club.league.id}`} className="inline-flex items-center hover:text-emerald-200">
-                    {leagueLogoSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={leagueLogoSrc} alt={t.league} className="mr-1 h-3.5 w-auto max-w-4 shrink-0 object-contain" />
-                    ) : (
-                      <Shield className="mr-1 h-3.5 w-3.5" />
-                    )}
+                    <ClubLogo name={club.league.name} logoUrl={leagueLogoSrc} className="mr-1 flex h-3.5 w-4 shrink-0 items-center justify-center overflow-hidden" imageClassName="h-full w-full object-contain object-center" fallbackClassName="mr-1 flex h-3.5 w-4 shrink-0 items-center justify-center overflow-hidden" iconClassName="h-2.5 w-2.5 text-muted-foreground" />
                     {club.league.name}
                   </Link>
                 ) : (
@@ -294,12 +289,7 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
               <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
                 <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.league}</p>
                 <p className="flex items-center text-base font-bold text-foreground">
-                  {leagueLogoSrc ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={leagueLogoSrc} alt={t.league} className="mr-2 h-4 w-auto max-w-5 shrink-0 object-contain" />
-                  ) : (
-                    <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
-                  )}
+                  <ClubLogo name={club.league?.name ?? t.league} logoUrl={leagueLogoSrc} className="mr-2 flex h-4 w-5 shrink-0 items-center justify-center overflow-hidden" imageClassName="h-full w-full object-contain object-center" fallbackClassName="mr-2 flex h-4 w-5 shrink-0 items-center justify-center overflow-hidden" iconClassName="h-3 w-3 text-muted-foreground" />
                   {club.league?.name ?? t.noData}
                 </p>
               </div>

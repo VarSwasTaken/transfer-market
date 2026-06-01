@@ -176,7 +176,7 @@ export function PlayerProfileView({ player }: { player: PlayerProfileData | null
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 rounded-xl border border-border/40 bg-card/50 p-6">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <PlayerAvatar name={name} firstName={player.firstName} lastName={player.lastName} imageUrl={avatarSrc} className="flex aspect-300/390 w-30 shrink-0 items-center justify-center overflow-hidden rounded-xl text-3xl font-extrabold text-white shadow-lg shadow-emerald-900/30" imageClassName="h-full w-full object-cover object-center" />
+          <PlayerAvatar name={name} firstName={player.firstName} lastName={player.lastName} imageUrl={avatarSrc} tone="emerald" className="flex aspect-300/390 w-30 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-lg shadow-emerald-900/30" textClassName="text-4xl font-extrabold text-white" imageClassName="h-full w-full object-cover object-center" />
 
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -242,14 +242,7 @@ export function PlayerProfileView({ player }: { player: PlayerProfileData | null
 
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               <span className="text-muted-foreground">
-                {t.agent}:{' '}
-                {player.agent ? (
-                  <Link href={`/agent/${player.agent.id}`} className="font-medium text-foreground transition-colors hover:text-emerald-400">
-                    {player.agent.name}
-                  </Link>
-                ) : (
-                  <span className="font-medium text-foreground">{t.noData}</span>
-                )}{' '}
+                {t.agent}: {player.agent ? <span className="font-medium text-foreground">{player.agent.name}</span> : <span className="font-medium text-foreground">{t.noData}</span>}{' '}
               </span>
               <span className="text-muted-foreground">
                 {t.born}:{' '}
@@ -281,12 +274,12 @@ export function PlayerProfileView({ player }: { player: PlayerProfileData | null
                     {t.noTransferHistory}
                   </div>
                 )}
-                {player.transfers.map((transfer) => {
+                {player.transfers.map((transfer, index) => {
                   const trend = getTrend(transfer.transferType, transfer.fee);
                   const feeLabel = transfer.transferType === 'FREE' ? '0M €' : transfer.transferType === 'LOAN' ? t.loan : formatMarketValue(transfer.fee, language);
 
                   return (
-                    <div key={transfer.id} className="flex items-center gap-4 px-6 py-3.5">
+                    <div key={`transfer-${transfer.id || 'new'}-${index}`} className="flex items-center gap-4 px-6 py-3.5">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5 text-sm">
                           <span className="inline-flex items-center gap-1.5 text-muted-foreground">
@@ -339,8 +332,8 @@ export function PlayerProfileView({ player }: { player: PlayerProfileData | null
                     {t.noInjuryHistory}
                   </div>
                 )}
-                {player.injuries.map((injury) => (
-                  <div key={injury.id} className="flex items-center gap-4 px-6 py-3.5">
+                {player.injuries.map((injury, index) => (
+                  <div key={`injury-${injury.id || 'new'}-${index}`} className="flex items-center gap-4 px-6 py-3.5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground">{language === 'pl' ? injury.type_PL || injury.type_EN || 'Unknown' : injury.type_EN || injury.type_PL || 'Unknown'}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
