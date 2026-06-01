@@ -9,7 +9,6 @@ import { logoutAction } from '@/app/admin/logout-action';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: Home },
-  { name: 'Narodowości', href: '/admin/nationalities', icon: Flag },
   { name: 'Ligi', href: '/admin/leagues', icon: Trophy },
   { name: 'Kluby', href: '/admin/clubs', icon: Shield },
   { name: 'Zawodnicy', href: '/admin/players', icon: Users },

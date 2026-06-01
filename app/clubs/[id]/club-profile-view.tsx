@@ -1,4 +1,5 @@
 'use client';
+
 import Link from 'next/link';
 import { ArrowRight, Users, TrendingUp, TrendingDown, Minus, Activity, Flame, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -156,7 +157,6 @@ const playerToneByPosition = {
   FORWARD: 'emerald',
 } as const;
 
-// Dodana mapa klas tekstowych dla poszczególnych pozycji
 const textToneByPosition = {
   GOALKEEPER: {
     text: 'text-violet-400',
@@ -288,14 +288,14 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
               <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
                 <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.league}</p>
-                <p className="flex items-center text-base font-bold text-foreground">
+                <div className="flex items-center text-base font-bold text-foreground">
                   <ClubLogo name={club.league?.name ?? t.league} logoUrl={leagueLogoSrc} className="mr-2 flex h-4 w-5 shrink-0 items-center justify-center overflow-hidden" imageClassName="h-full w-full object-contain object-center" fallbackClassName="mr-2 flex h-4 w-5 shrink-0 items-center justify-center overflow-hidden" iconClassName="h-3 w-3 text-muted-foreground" />
                   {club.league?.name ?? t.noData}
-                </p>
+                </div>
               </div>
               <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
                 <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.country}</p>
-                <p className="flex items-center text-base font-bold text-foreground">
+                <div className="flex items-center text-base font-bold text-foreground">
                   {nationalityFlagSrc ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={nationalityFlagSrc} alt={t.country} className="mr-2 h-3.5 w-5 rounded-sm object-cover" />
@@ -303,7 +303,7 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
                     <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
                   )}
                   {pickLocalizedName(language, club.league?.nationality) || t.noData}
-                </p>
+                </div>
               </div>
               <div className="rounded-lg border border-border/30 bg-background/60 px-3 py-2">
                 <p className="mb-0.5 text-[10px] uppercase tracking-wider text-muted-foreground">{t.budget}</p>
@@ -327,6 +327,7 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* LEWA KOLUMNA */}
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Card className="border-border/40 bg-card/50">
             <CardHeader className="pb-4">
@@ -413,7 +414,7 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
                             </Link>
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
+                            <div className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
                               <ClubLogo name={transfer.fromClub?.name ?? t.noClub} logoUrl={transfer.fromClub?.logoUrl ?? null} className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center" iconClassName="h-2.5 w-2.5 text-muted-foreground" />
                               {transfer.fromClub ? (
                                 <Link href={`/clubs/${transfer.fromClub.id}`} className="max-w-40 truncate transition-colors hover:text-foreground">
@@ -422,14 +423,14 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
                               ) : (
                                 <span className="max-w-40 truncate">{t.noClub}</span>
                               )}
-                            </span>
+                            </div>
                             <ArrowRight className="h-3 w-3 shrink-0" />
-                            <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
+                            <div className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
                               <ClubLogo name={transfer.toClub.name} logoUrl={transfer.toClub.logoUrl} className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center p-0.5" iconClassName="h-2.5 w-2.5 text-muted-foreground" />
                               <Link href={`/clubs/${transfer.toClub.id}`} className="max-w-40 truncate transition-colors hover:text-foreground">
                                 {transfer.toClub.name}
                               </Link>
-                            </span>
+                            </div>
                           </div>
                           <div className="mt-1 flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">{formatDate(transfer.date, language)}</span>
@@ -475,19 +476,23 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
                             </Link>
                           </p>
                           <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
+                            <div className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
                               <ClubLogo name={transfer.fromClub?.name ?? t.noClub} logoUrl={transfer.fromClub?.logoUrl ?? null} className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center" iconClassName="h-2.5 w-2.5 text-muted-foreground" />
-                              <Link href={`/clubs/${transfer.fromClub.id}`} className="max-w-40 truncate transition-colors hover:text-foreground">
-                                {transfer.fromClub.name}
-                              </Link>
-                            </span>
+                              {transfer.fromClub ? (
+                                <Link href={`/clubs/${transfer.fromClub.id}`} className="max-w-40 truncate transition-colors hover:text-foreground">
+                                  {transfer.fromClub.name}
+                                </Link>
+                              ) : (
+                                <span className="max-w-40 truncate">{t.noClub}</span>
+                              )}
+                            </div>
                             <ArrowRight className="h-3 w-3 shrink-0" />
-                            <span className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
+                            <div className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-background/70 px-2 py-0.5">
                               <ClubLogo name={transfer.toClub.name} logoUrl={transfer.toClub.logoUrl} className="flex h-3.5 w-3.5 shrink-0 items-center justify-center overflow-hidden rounded-none bg-muted" imageClassName="h-full w-full object-contain object-center p-0.5" iconClassName="h-2.5 w-2.5 text-muted-foreground" />
                               <Link href={`/clubs/${transfer.toClub.id}`} className="max-w-40 truncate transition-colors hover:text-foreground">
                                 {transfer.toClub.name}
                               </Link>
-                            </span>
+                            </div>
                           </div>
                           <div className="mt-1 flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">{formatDate(transfer.date, language)}</span>
@@ -526,6 +531,7 @@ export function ClubProfileView({ club, initialLanguage = 'pl' }: { club: ClubPr
           </Card>
         </div>
 
+        {/* PRAWA KOLUMNA */}
         <div className="flex flex-col gap-6">
           <SquadValueChart language={language} valuations={club.squadValueHistory ?? []} />
 

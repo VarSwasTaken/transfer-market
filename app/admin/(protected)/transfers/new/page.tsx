@@ -5,7 +5,12 @@ export default async function NewTransferPage() {
   const [players, clubs] = await Promise.all([
     prisma.player.findMany({
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-      select: { id: true, firstName: true, lastName: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        clubId: true, // <--- DOKŁADNIE TUTAJ DODANE
+      },
     }),
     prisma.club.findMany({
       orderBy: { name: 'asc' },

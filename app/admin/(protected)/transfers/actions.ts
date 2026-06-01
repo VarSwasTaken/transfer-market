@@ -28,6 +28,7 @@ export async function saveTransferAction(formData: FormData) {
     date: new Date(dateStr),
   };
 
+  // 1. Zapis transferu do bazy (nowy lub aktualizacja istniejącego)
   if (idStr) {
     await prisma.transfer.update({
       where: { id: Number(idStr) },
@@ -39,7 +40,15 @@ export async function saveTransferAction(formData: FormData) {
     });
   }
 
-  revalidatePath('/admin/transfers');
+  // 2. Aktualizacja przypisanego klubu u zawodnika
+  await prisma.player.update({
+    where: { id: data.playerId },
+    data: { clubId: data.toClubId },
+  });
+
+  // 3. Wymuszenie odświeżenia WSZYSTKICH stron na froncie (cache)
+  revalidatePath('/', 'layout');
+
   redirect('/admin/transfers');
 }
 
@@ -51,5 +60,6 @@ export async function deleteTransferAction(formData: FormData) {
     where: { id: Number(idStr) },
   });
 
-  revalidatePath('/admin/transfers');
+  // Przy usuwaniu transferu również warto mocno wyczyścić cache
+  revalidatePath('/', 'layout');
 }

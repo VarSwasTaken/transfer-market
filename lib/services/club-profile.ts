@@ -141,6 +141,7 @@ export async function getClubProfile(clubId: number): Promise<ClubProfileResult>
         shirtNumber: player.shirtNumber,
         position: player.position,
         marketValue: decimalToString(player.marketValue),
+        imageUrl: player.imageUrl, // <--- TUTAJ DODAĆ TĄ LINIJKĘ!
         nationality: player.nationality
           ? {
               id: player.nationality.id,

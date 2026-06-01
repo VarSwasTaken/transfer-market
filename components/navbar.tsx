@@ -49,7 +49,6 @@ const searchScopes = [
   { label: 'Wszystko', value: 'all' },
   { label: 'Zawodnicy', value: 'zawodnicy' },
   { label: 'Kluby', value: 'kluby' },
-  { label: 'Agenci', value: 'agenci' },
   { label: 'Ligi', value: 'ligi' },
 ];
 
@@ -99,7 +98,6 @@ function SearchBar({ className }: { className?: string }) {
           all: 'all',
           zawodnicy: 'players',
           kluby: 'clubs',
-          agenci: 'agents',
           ligi: 'leagues',
         };
         const type = typeMap[scope.value] || 'all';

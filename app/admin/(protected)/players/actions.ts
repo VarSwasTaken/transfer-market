@@ -20,13 +20,14 @@ export async function savePlayerAction(formData: FormData) {
   const clubIdStr = formData.get('clubId') as string;
   const agentIdStr = formData.get('agentId') as string;
 
-  if (!firstName || !lastName || !birthDateStr || !shirtNumberStr || !position || !marketValueStr || !nationalityIdStr) {
-    throw new Error('Wypełnij wymagane pola (Imię, Nazwisko, Data ur., Numer, Pozycja, Wartość rynkowa i Kraj).');
+  // Usunięto !lastName z walidacji
+  if (!firstName || !birthDateStr || !shirtNumberStr || !position || !marketValueStr || !nationalityIdStr) {
+    throw new Error('Wypełnij wymagane pola (Imię, Data ur., Numer, Pozycja, Wartość rynkowa i Kraj).');
   }
 
   const data = {
     firstName,
-    lastName,
+    lastName: lastName || '', // Zapisuje pusty string, jeśli nie podano nazwiska
     birthDate: new Date(birthDateStr),
     shirtNumber: Number(shirtNumberStr),
     position,
@@ -58,7 +59,7 @@ export async function savePlayerAction(formData: FormData) {
     throw error;
   }
 
-  revalidatePath('/admin/players');
+  revalidatePath('/', 'layout'); // Agresywne odświeżenie cache'u dla pewności
   redirect('/admin/players');
 }
 
@@ -70,5 +71,5 @@ export async function deletePlayerAction(formData: FormData) {
     where: { id: Number(idStr) },
   });
 
-  revalidatePath('/admin/players');
+  revalidatePath('/', 'layout');
 }

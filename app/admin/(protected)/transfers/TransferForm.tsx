@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { saveTransferAction } from './actions';
 
@@ -28,13 +28,27 @@ type TransferInitialData = {
   date?: Date;
 } | null;
 
-export function TransferForm({ initialData, players, clubs }: { initialData?: TransferInitialData; players: { id: number; firstName: string; lastName: string }[]; clubs: { id: number; name: string }[] }) {
+export function TransferForm({ initialData, players, clubs }: { initialData?: TransferInitialData; players: { id: number; firstName: string; lastName: string; clubId?: number | null }[]; clubs: { id: number; name: string }[] }) {
   const [state, formAction, isPending] = useActionState(actionWrapper, null);
+
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>(initialData?.playerId?.toString() || '');
+  const [fromClubId, setFromClubId] = useState<string>(initialData?.fromClubId?.toString() || '');
 
   const formatInitialDate = (date?: Date | null) => {
     if (!date) return '';
     return new Date(date).toISOString().split('T')[0];
   };
+
+  const handlePlayerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const playerId = e.target.value;
+    setSelectedPlayerId(playerId);
+
+    const player = players.find((p) => p.id.toString() === playerId);
+    setFromClubId(player?.clubId?.toString() || '');
+  };
+
+  // Znajdź nazwę obecnego klubu do wyświetlenia w zablokowanym polu
+  const fromClubName = clubs.find((c) => c.id.toString() === fromClubId)?.name || 'Brak klubu (Wolny agent)';
 
   return (
     <form action={formAction} className="bg-card p-6 rounded-lg border border-border shadow-sm flex flex-col gap-4">
@@ -44,7 +58,7 @@ export function TransferForm({ initialData, players, clubs }: { initialData?: Tr
 
       <div>
         <label className="block text-sm font-medium mb-1 text-muted-foreground">Zawodnik *</label>
-        <select name="playerId" defaultValue={initialData?.playerId || ''} required className="w-full bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select name="playerId" value={selectedPlayerId} onChange={handlePlayerChange} required className="w-full bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="" disabled>
             Wybierz zawodnika...
           </option>
@@ -58,15 +72,12 @@ export function TransferForm({ initialData, players, clubs }: { initialData?: Tr
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1 text-muted-foreground">Ze Szeregu/Klubu (opcjonalnie dla wolnych agentów)</label>
-          <select name="fromClubId" defaultValue={initialData?.fromClubId || ''} className="w-full bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            <option value="">-- Brak klubu (Wolny agent) --</option>
-            {clubs.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium mb-1 text-muted-foreground">Obecny Klub</label>
+
+          <input type="hidden" name="fromClubId" value={fromClubId} />
+
+          {/* Zmieniono na czysty readOnly input */}
+          <input type="text" readOnly value={fromClubId ? fromClubName : 'Brak klubu (Wolny agent)'} className="w-full bg-muted/50 border border-border rounded-md px-3 py-2 text-muted-foreground focus:outline-none cursor-not-allowed" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1 text-muted-foreground">Klub Docelowy *</label>
@@ -93,7 +104,7 @@ export function TransferForm({ initialData, players, clubs }: { initialData?: Tr
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1 text-muted-foreground">Kwota Transferu (w mln/wybranej walucie, wpisz 0 dla opcji darmowych) *</label>
+          <label className="block text-sm font-medium mb-1 text-muted-foreground">Kwota Transferu (w mln/wybranej walucie, wpisz 0 dla darmowych) *</label>
           <input name="fee" type="number" step="0.01" defaultValue={initialData?.fee?.toString() || '0'} required className="w-full bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
       </div>
@@ -104,7 +115,7 @@ export function TransferForm({ initialData, players, clubs }: { initialData?: Tr
           <input name="date" type="date" defaultValue={formatInitialDate(initialData?.date || new Date())} required className="w-full bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1 text-muted-foreground">Koniec Wypożyczenia (Opcjonalne, tylko dla typu Wypożyczenie)</label>
+          <label className="block text-sm font-medium mb-1 text-muted-foreground">Koniec Wypożyczenia (Opcjonalne)</label>
           <input name="loanEndDate" type="date" defaultValue={formatInitialDate(initialData?.loanEndDate)} className="w-full bg-background border border-border rounded-md px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
       </div>
