@@ -272,35 +272,6 @@ function SearchBar({ className }: { className?: string }) {
                 </div>
               </div>
             )}
-
-            {/* Agents */}
-            {results.agents && results.agents.length > 0 && (
-              <div className="mb-0">
-                <p className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">Agenci</p>
-                <div>
-                  {results.agents.map((a: any) => (
-                    <div
-                      key={`a-${a.id}`}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => {
-                        setOpen(false);
-                        window.location.href = `/agent/${a.id}`;
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setOpen(false);
-                          window.location.href = `/agent/${a.id}`;
-                        }
-                      }}
-                      className="block px-2 py-1 text-sm hover:bg-muted rounded cursor-pointer"
-                    >
-                      {a.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
