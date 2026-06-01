@@ -26,12 +26,8 @@ const formatTransferFee = (fee: string): string => {
   return `€${num}`;
 };
 
-interface TransfersClientProps {
-  windowStart: string;
-  windowEnd: string;
-}
-
-export default function TransfersClient({ windowStart, windowEnd }: TransfersClientProps) {
+// Zmieniono: usunięto parametry windowStart i windowEnd
+export default function TransfersClient() {
   const searchParams = useSearchParams();
   const page = parseInt(searchParams?.get('page') || '1', 10);
 
@@ -45,12 +41,10 @@ export default function TransfersClient({ windowStart, windowEnd }: TransfersCli
       try {
         const params = new URLSearchParams({
           page: page.toString(),
-          limit: '20',
-          windowStart,
-          windowEnd,
+          limit: '50', // Pobieramy 50 transferów na jedną stronę
         });
 
-        const response = await fetch(`/api/v1/transfers?${params}`);
+        const response = await fetch(`/api/v1/transfers?${params.toString()}`);
         const result = await response.json();
         setData(result.data || []);
         setMeta(result.meta || {});
@@ -62,7 +56,7 @@ export default function TransfersClient({ windowStart, windowEnd }: TransfersCli
     };
 
     fetchData();
-  }, [page, windowStart, windowEnd]);
+  }, [page]); // useEffect reaguje teraz tylko na zmianę strony
 
   const buildQueryString = (pageNum: number) => {
     const query = new URLSearchParams();
